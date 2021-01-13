@@ -64,18 +64,55 @@ public class Pilot : MonoBehaviour
     transform.rotation = Quaternion.Slerp(transform.rotation, newRot, rotLerp * Time.deltaTime);
   }
 
-  void Detect()
+  // Input management ---------------------------------------------------------
+  public void OnGUI()
   {
-    List<Entity> danger = new List<Entity>();
+    Event e = Event.current;
+    if (e.type == EventType.KeyDown)
+    {
+      if (e.keyCode == KeyCode.A) {
+        FindMinTarget();
+        SavePreferredTarget();
+      } else if (e.keyCode == KeyCode.LeftArrow) {
+        PrevTarget();
+      } else if (e.keyCode == KeyCode.RightArrow) {
+        NextTarget();
+      }
+    }
+    else if (e.type == EventType.ScrollWheel)
+    {
+      ZoomBy(e.delta.y);
+    }
+    else if (e.type == EventType.MouseDrag)
+    {
+      RotateBy(e.delta.x);
+    }
+  }
+
+  // Render management --------------------------------------------------------
+  public void OnPostRender() {
+    Shapes.Draw.LineGeometry = Shapes.LineGeometry.Volumetric3D;
+    Shapes.Draw.LineThicknessSpace = Shapes.ThicknessSpace.Pixels;
 
     foreach (KeyValuePair<string, Entity> entry in world.entities) {
       Entity e = entry.Value;
+      if (e.HasType("Human"))
+        continue;
 
-      if (e.HasType("Weapon")) {
-        float distance = target.pos.GetDistanceTo(e.pos);
-        float aspect = Math.Abs((e.heading - e.pos.GetBearingTo(target.pos) + 360) % 360);
-        if (distance < 60 && aspect < 20)
-          danger.Add(e);
+      // Draw the vertical height stem and trails
+      if (e.HasType("Air") || e.HasType("Weapon")) {
+        DrawEntityDetails(e);
+      }
+
+      // Draw radar rings around our focused object
+      if (e == target) {
+        Vector3 ground = new Vector3(e.transform.position.x, groundDrawY, e.transform.position.z);
+
+        Shapes.Draw.LineThickness = 0.08f;
+        Shapes.Draw.Disc(ground, Vector3.up, Pos.ConvertNmToUnity(10), colorRadar1fill);
+        Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(10), 0.01f, colorRadar1);
+        Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(20), 0.03f, colorRadar2);
+        Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(40), 0.06f, colorRadar3);
       }
     }
   }
@@ -104,70 +141,9 @@ public class Pilot : MonoBehaviour
     }
   }
 
-  public void OnPostRender() {
-    Shapes.Draw.LineGeometry = Shapes.LineGeometry.Volumetric3D;
-    Shapes.Draw.LineThicknessSpace = Shapes.ThicknessSpace.Pixels;
-
-    foreach (KeyValuePair<string, Entity> entry in world.entities) {
-      Entity e = entry.Value;
-      if (e.HasType("Human"))
-        continue;
-
-      // Draw the vertical height stem and trails
-      if (e.HasType("Air") || e.HasType("Weapon")) {
-        DrawEntityDetails(e);
-      }
-
-      // Draw radar rings around our focused object
-      if (e == target) {
-        Vector3 ground = new Vector3(e.transform.position.x, groundDrawY, e.transform.position.z);
-
-        Shapes.Draw.LineThickness = 0.08f;
-        Shapes.Draw.Disc(ground, Vector3.up, Pos.ConvertNmToUnity(10), colorRadar1fill);
-        Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(10), 0.01f, colorRadar1);
-        Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(20), 0.03f, colorRadar2);
-        Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(40), 0.06f, colorRadar3);
-      }
-    }
-  }
-
-  public void OnGUI()
+  // View management ----------------------------------------------------------
+  private void ZoomBy(float amount)
   {
-    Event e = Event.current;
-    if (e.type == EventType.KeyDown)
-    {
-      if (e.keyCode == KeyCode.A) {
-        FindMinTarget();
-        SavePreferredTarget();
-      } else if (e.keyCode == KeyCode.LeftArrow) {
-        PrevTarget();
-      } else if (e.keyCode == KeyCode.RightArrow) {
-        NextTarget();
-      }
-    }
-    else if (e.type == EventType.ScrollWheel)
-    {
-      ZoomBy(e.delta.y);
-    }
-    else if (e.type == EventType.MouseDrag)
-    {
-      RotateBy(e.delta.x);
-    }
-  }
-
-  private void NextTarget() {
-    targetIndex++;
-    FindTarget();
-    SavePreferredTarget();
-  }
-
-  private void PrevTarget() {
-    targetIndex -= targetIndex > 0 ? 1 : 0;
-    FindTarget();
-    SavePreferredTarget();
-  }
-
-  private void ZoomBy(float amount) {
     viewZoom += amount * 0.5f;
     if (viewZoom < 1) viewZoom = 1;
     if (viewZoom > 10) viewZoom = 10;
@@ -177,6 +153,21 @@ public class Pilot : MonoBehaviour
   {
     viewAngle -= amount * 0.25f;
     viewAngle = viewAngle % 360;
+  }
+
+  // Target management --------------------------------------------------------
+  private void NextTarget()
+  {
+    targetIndex++;
+    FindTarget();
+    SavePreferredTarget();
+  }
+
+  private void PrevTarget()
+  {
+    targetIndex -= targetIndex > 0 ? 1 : 0;
+    FindTarget();
+    SavePreferredTarget();
   }
 
   public void SetTarget(Entity entity)
@@ -224,7 +215,7 @@ public class Pilot : MonoBehaviour
     return false;
   }
 
-  public void FindMinTarget()
+  public bool FindMinTarget()
   {
     Entity minTarget = target;
     float minDistance = Single.MaxValue;
@@ -250,8 +241,11 @@ public class Pilot : MonoBehaviour
       }
     }
 
-    if (minTarget)
+    if (minTarget) {
       SetTarget(minTarget);
+      return true;
+    }
+    return false;
   }
 
   public bool HaveTarget()
@@ -261,6 +255,27 @@ public class Pilot : MonoBehaviour
     
     if (FindTargetByName(PlayerPrefs.GetString("preferredTarget")))
       return true;
+
+    if (FindMinTarget())
+      return true;
+  
     return false;
+  }
+
+  // Warning management -------------------------------------------------------
+  void Detect()
+  {
+    List<Entity> danger = new List<Entity>();
+
+    foreach (KeyValuePair<string, Entity> entry in world.entities) {
+      Entity e = entry.Value;
+
+      if (!e.HasType("Weapon")) continue;
+
+      float distance = target.pos.GetDistanceTo(e.pos);
+      float aspect = Math.Abs((e.heading - e.pos.GetBearingTo(target.pos) + 360) % 360);
+      if (distance < 60 && aspect < 20)
+        danger.Add(e);
+    }
   }
 }
