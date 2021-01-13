@@ -8,6 +8,14 @@ public class Pilot : MonoBehaviour
   private static float posLerp = 1f;
   private static float rotLerp = 2f;
   private static float groundDrawY = 0.001f;
+  
+  [Range (1, 10)]
+  public float viewZoom = 5f;
+
+  [Range (0, 2)]
+  public float viewHeight = 1f;
+
+  public float viewAngle = 0;
 
   // Color of the height bars
   private static Color colorHeight = new Color(1, 1, 1, 0.75f);
@@ -24,8 +32,6 @@ public class Pilot : MonoBehaviour
   World world;
   Entity target;
   int targetIndex = 0;
-  public float zoom = 0; // -1 to 1
-  public float viewAngle = 0;
 
   public void Start()
   {
@@ -45,15 +51,15 @@ public class Pilot : MonoBehaviour
       return;
     // Camera Position
     Transform targetTransform = target.gameObject.transform;
-    float angle = (-target.yaw + 90) * Mathf.Deg2Rad;
-    Vector3 newPos = new Vector3(targetTransform.position.x - 5f * Mathf.Cos(angle + viewAngle),
-                                 targetTransform.position.y + 5f,
-                                 targetTransform.position.z - 5f * Mathf.Sin(angle + viewAngle));
+    float angle = (-target.yaw + 90 + viewAngle) * Mathf.Deg2Rad;
+    Vector3 newPos = new Vector3(targetTransform.position.x - viewZoom * Mathf.Cos(angle),
+                                 targetTransform.position.y + viewZoom * viewHeight,
+                                 targetTransform.position.z - viewZoom * Mathf.Sin(angle));
     transform.position = Vector3.Lerp(transform.position, newPos, posLerp * Time.deltaTime);
 
     // Camera Rotation
     Vector3 cameraTarget = targetTransform.position;
-    cameraTarget.y += 0.5f;
+    cameraTarget.y += (viewZoom * viewHeight) * 0.1f;
     Quaternion newRot = Quaternion.LookRotation(cameraTarget - transform.position);
     transform.rotation = Quaternion.Slerp(transform.rotation, newRot, rotLerp * Time.deltaTime);
   }
@@ -91,9 +97,10 @@ public class Pilot : MonoBehaviour
 
         trail.AddPoint(log[i].posCache);
       }
-
-      trail.AddPoint(e.transform.position);
-      Shapes.Draw.Polyline(trail, closed:false, thickness:0.3f, e.GetColor());
+      if (trail.Count > 0) {
+        trail.AddPoint(e.transform.position);
+        Shapes.Draw.Polyline(trail, closed:false, thickness:0.3f, e.GetColor());
+      }
     }
   }
 
@@ -127,22 +134,49 @@ public class Pilot : MonoBehaviour
   public void OnGUI()
   {
     Event e = Event.current;
-    if (e.type == EventType.MouseDown && e.button == 0 && e.isMouse)
-    {
-        if (e.mousePosition.x < Screen.width / 2)
-          targetIndex -= targetIndex > 0 ? 1 : 0;
-        else
-          targetIndex++;
-        FindTarget();
-        SavePreferredTarget();
-    }
-    else if (e.type == EventType.KeyDown)
+    if (e.type == EventType.KeyDown)
     {
       if (e.keyCode == KeyCode.A) {
         FindMinTarget();
         SavePreferredTarget();
+      } else if (e.keyCode == KeyCode.LeftArrow) {
+        PrevTarget();
+      } else if (e.keyCode == KeyCode.RightArrow) {
+        NextTarget();
       }
     }
+    else if (e.type == EventType.ScrollWheel)
+    {
+      ZoomBy(e.delta.y);
+    }
+    else if (e.type == EventType.MouseDrag)
+    {
+      RotateBy(e.delta.x);
+    }
+  }
+
+  private void NextTarget() {
+    targetIndex++;
+    FindTarget();
+    SavePreferredTarget();
+  }
+
+  private void PrevTarget() {
+    targetIndex -= targetIndex > 0 ? 1 : 0;
+    FindTarget();
+    SavePreferredTarget();
+  }
+
+  private void ZoomBy(float amount) {
+    viewZoom += amount * 0.5f;
+    if (viewZoom < 1) viewZoom = 1;
+    if (viewZoom > 10) viewZoom = 10;
+  }
+
+  private void RotateBy(float amount)
+  {
+    viewAngle -= amount * 0.25f;
+    viewAngle = viewAngle % 360;
   }
 
   public void SetTarget(Entity entity)
@@ -197,15 +231,18 @@ public class Pilot : MonoBehaviour
     float distance; 
     foreach (KeyValuePair<string, Entity> e in world.entities)
     {
+      // base object must be a plane
       if (!e.Value.HasType("FixedWing"))
         continue;
       foreach (KeyValuePair<string, Entity> other in world.entities)
       {
+        // ignore anything that isn't an enemy plane or missile
         if (e.Value == other.Value || 
-            e.Value.coalition == other.Value.coalition ||
-            !other.Value.HasType("FixedWing"))
+            !(other.Value.HasType("FixedWing") || other.Value.HasType("Missile")) ||
+            e.Value.coalition == other.Value.coalition)
           continue;
         distance = e.Value.pos.GetDistanceTo(other.Value.pos);
+
         if (distance < minDistance && e.Value != target) { // to toggle closest
           minDistance = distance;
           minTarget = e.Value;
