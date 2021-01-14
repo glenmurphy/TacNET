@@ -28,6 +28,7 @@ public class World : MonoBehaviour
   // User config
   public GameObject entityPrefab;
   public GameObject sunlightObject;
+  public MainUI mainUI;
 
   // Internal variables
   private DateTime baseTime;
@@ -36,18 +37,48 @@ public class World : MonoBehaviour
   public Dictionary<string, Entity> entities;
   SyncList<string> messageQueue = new SyncList<string>();
 
+  private static string CLIENT_ERROR = "!CLIENTERROR!";
+  private static string CLIENT_CONNECTED = "!CLIENTCONNECTED!";
+
   public void Start()
   {
-    TacViewClient client = new TacViewClient("home.glenmurphy.com", 42674, "glen");
-    client.OnMessage += QueueMessage;
     basePos = new Pos(0, 0, 0);
     entities = new Dictionary<string, Entity>();
   }
 
+  public bool Login(string host, string port, string password)
+  {
+    int portInt;
+    try {
+      portInt = Int32.Parse(port);
+    } catch(Exception e) {
+      portInt = 42674;
+      Debug.Log(e);
+    }
+
+    TacViewClient client = new TacViewClient(host, portInt, password);
+    client.OnMessage += ClientMessage;
+    client.OnError += ClientError;
+    client.OnConnect += ClientConnected;
+    return true;
+  }
+
   // Called on the network thread!
-  public void QueueMessage(object sender, OnMessageEventArgs e)
+  public void ClientConnected(object sender, EventArgs e)
+  {
+    messageQueue.Push(CLIENT_CONNECTED);
+  }
+
+  // Called on the network thread!
+  public void ClientMessage(object sender, OnMessageEventArgs e)
   {
     messageQueue.Push(e.str);
+  }
+  
+  // Called on the network thread!
+  public void ClientError(object sender, EventArgs e)
+  {
+    messageQueue.Push(CLIENT_ERROR);
   }
 
   public void Update() {
@@ -59,6 +90,15 @@ public class World : MonoBehaviour
 
   public void Parse(string str)
   {
+    if (str == CLIENT_ERROR) {
+      mainUI.HandleClientError();
+      return;
+    }
+    if (str == CLIENT_CONNECTED) {
+      mainUI.HandleClientConnected();
+      return;
+    }
+
     switch (str[0]) {
       case '#':
         OffsetTime(str.Substring(1));

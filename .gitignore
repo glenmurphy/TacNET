@@ -1,5 +1,6 @@
 # 3P content / TacNET-specifc
 /[Aa]ssets/Shapes/
+/[Aa]ssets/3P/
 .vscode/
 
 # This .gitignore file should be placed at the root of your Unity project directory

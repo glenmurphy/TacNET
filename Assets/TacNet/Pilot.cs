@@ -32,14 +32,18 @@ public class Pilot : MonoBehaviour
   World world;
   Entity target;
   int targetIndex = 0;
+  MainUI mainUI;
 
   public void Start()
   {
     world = worldObject.GetComponent<World>();
+    mainUI = GetComponentInChildren<MainUI>();
   }
 
   public void Update()
   {
+     ProcessTouchInput();
+
     // We update the position of each entity here so that we can guarantee that the camera movement
     // happens after the movement update
     foreach (KeyValuePair<string, Entity> entry in world.entities) {
@@ -49,6 +53,7 @@ public class Pilot : MonoBehaviour
 
     if (!HaveTarget())
       return;
+    
     // Camera Position
     Transform targetTransform = target.gameObject.transform;
     float angle = (-target.yaw + 90 + viewAngle) * Mathf.Deg2Rad;
@@ -64,15 +69,35 @@ public class Pilot : MonoBehaviour
     transform.rotation = Quaternion.Slerp(transform.rotation, newRot, rotLerp * Time.deltaTime);
   }
 
+  void ProcessTouchInput()
+  {
+    if (Input.touchCount > 0){
+      for (int i = 0; i < Input.touchCount; i++) {
+        Touch touch = Input.GetTouch(i);
+        if (touch.phase != TouchPhase.Began)
+          continue;
+        
+        if (touch.position.x < Screen.width / 2)
+          PrevTarget();
+        else
+          NextTarget();
+      }
+    }
+  }
+
   // Input management ---------------------------------------------------------
   public void OnGUI()
   {
+    if (mainUI.IsUIVisible()) {
+      Debug.Log("Main UI is visible");
+      return;
+    }
+
     Event e = Event.current;
     if (e.type == EventType.KeyDown)
     {
       if (e.keyCode == KeyCode.A) {
         FindMinTarget();
-        SavePreferredTarget();
       } else if (e.keyCode == KeyCode.LeftArrow) {
         PrevTarget();
       } else if (e.keyCode == KeyCode.RightArrow) {
@@ -87,6 +112,22 @@ public class Pilot : MonoBehaviour
     {
       RotateBy(e.delta.x);
     }
+  }
+
+  // Performance management ---------------------------------------------------
+  void ReduceSpeed(bool isPaused)
+  {
+    Application.targetFrameRate = isPaused ? 30 : -1;
+  }
+
+  void OnApplicationFocus(bool hasFocus)
+  {
+    ReduceSpeed(!hasFocus);
+  }
+
+  void OnApplicationPause(bool isPaused)
+  {
+    ReduceSpeed(isPaused);
   }
 
   // Render management --------------------------------------------------------
@@ -160,14 +201,12 @@ public class Pilot : MonoBehaviour
   {
     targetIndex++;
     FindTarget();
-    SavePreferredTarget();
   }
 
   private void PrevTarget()
   {
     targetIndex -= targetIndex > 0 ? 1 : 0;
     FindTarget();
-    SavePreferredTarget();
   }
 
   public void SetTarget(Entity entity)
@@ -177,13 +216,8 @@ public class Pilot : MonoBehaviour
     }
     
     target = entity;
-    GetComponentInChildren<UnityEngine.UI.Text>().text = entity.pilot;
-  }
-
-  public void SavePreferredTarget()
-  {
-    if (target != null)
-      PlayerPrefs.SetString("preferredTarget", target.pilot);
+    GameObject.Find("TargetName").GetComponent<UnityEngine.UI.Text>().text = entity.pilot;
+    PlayerPrefs.SetString("preferredTarget", entity.pilot);
   }
 
   public bool FindTargetByName(string name)

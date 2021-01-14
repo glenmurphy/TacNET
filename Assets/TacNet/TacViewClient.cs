@@ -17,6 +17,8 @@ class TacViewClient
   int port;
   string password;
   public event EventHandler<OnMessageEventArgs> OnMessage;
+  public event EventHandler<EventArgs> OnError;
+  public event EventHandler<EventArgs> OnConnect;
 
   public TacViewClient(string hostIn, int portIn, string passwordIn)
   {
@@ -36,6 +38,7 @@ class TacViewClient
     }
     catch (Exception e)
     {
+      OnError?.Invoke(this, new EventArgs());
       Debug.Log(e);
     }
   }
@@ -54,6 +57,7 @@ class TacViewClient
     try
     {
       socket = new TcpClient(host, port);
+      OnConnect?.Invoke(this, new EventArgs());
       while (true)
       {
         NetworkStream stream = socket.GetStream();
@@ -67,6 +71,8 @@ class TacViewClient
     }
     catch (Exception e)
     {
+      // this is where we might want to reshow the login panel
+      OnError?.Invoke(this, new EventArgs());
       Debug.Log(e);
     }
   }
@@ -92,6 +98,7 @@ class TacViewClient
     }
     catch (Exception e)
     {
+      OnError?.Invoke(this, new EventArgs());
       Debug.Log(e);
     }
   }
