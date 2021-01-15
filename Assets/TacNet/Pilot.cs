@@ -89,7 +89,6 @@ public class Pilot : MonoBehaviour
   public void OnGUI()
   {
     if (mainUI.IsUIVisible()) {
-      Debug.Log("Main UI is visible");
       return;
     }
 

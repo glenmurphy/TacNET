@@ -50,7 +50,7 @@ public class World : MonoBehaviour
   {
     int portInt;
     try {
-      portInt = Int32.Parse(port);
+      portInt = (String.IsNullOrEmpty(port)) ? 42674 : Int32.Parse(port);
     } catch(Exception e) {
       portInt = 42674;
       Debug.Log(e);

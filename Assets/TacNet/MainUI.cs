@@ -13,6 +13,8 @@ public class MainUI : MonoBehaviour
   Button connect;
   
   GameObject connectingPanel;
+  GameObject disconnectPanel;
+
   Text targetName;
 
   void Start()
@@ -25,6 +27,8 @@ public class MainUI : MonoBehaviour
 
     connectingPanel = transform.Find("ConnectingPanel").gameObject;
 
+    disconnectPanel = transform.Find("ButtonDisconnect").gameObject;
+
     targetName = GameObject.Find("TargetName").GetComponent<Text>();
 
     hostname.text = PlayerPrefs.GetString("hostname");
@@ -33,7 +37,10 @@ public class MainUI : MonoBehaviour
 
     loginPanel.SetActive(true);
     connectingPanel.SetActive(false);
+    disconnectPanel.SetActive(false);
+
     connect.onClick.AddListener(HandleConnect);
+    disconnectPanel.GetComponent<Button>().onClick.AddListener(HandleDisconnect);
   }
 
   void Update() {
@@ -68,13 +75,18 @@ public class MainUI : MonoBehaviour
     connectingPanel.SetActive(true);
   }
 
-  public void HandleClientError() {
+  public void HandleDisconnect() {
     SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+  }
+
+  public void HandleClientError() {
+    HandleDisconnect();
   }
 
   public void HandleClientConnected() {
     loginPanel.SetActive(false);
     connectingPanel.SetActive(false);
-    targetName.text = "CONNECTED";
+    disconnectPanel.SetActive(true);
+    targetName.text = "Awaiting data";
   }
 }

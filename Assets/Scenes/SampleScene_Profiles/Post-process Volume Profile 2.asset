@@ -21,7 +21,7 @@ MonoBehaviour:
     value: 360
   sampleCount:
     overrideState: 1
-    value: 8
+    value: 6
 --- !u!114 &-5160057080633641712
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -40,16 +40,16 @@ MonoBehaviour:
     value: 1
   intensity:
     overrideState: 1
-    value: 1.5
+    value: 25
   threshold:
     overrideState: 1
     value: 1.25
   softKnee:
-    overrideState: 1
+    overrideState: 0
     value: 0.5
   clamp:
     overrideState: 0
-    value: 65472
+    value: 122.1
   diffusion:
     overrideState: 0
     value: 7
@@ -96,7 +96,7 @@ MonoBehaviour:
     value: {x: 0.5, y: 0.5}
   intensity:
     overrideState: 1
-    value: 0.358
+    value: 0.4
   smoothness:
     overrideState: 0
     value: 0.2

@@ -44,7 +44,7 @@ class TacViewClient
   }
 
   private void HandleLine(string line) {
-    if (line == "[host]")
+    if (line == "Tacview.RealTimeTelemetry.0")
       Login();
     
     OnMessageEventArgs args = new OnMessageEventArgs();
@@ -89,7 +89,9 @@ class TacViewClient
         string clientMessage = "XtraLib.Stream.0\n" +
                                 "Tacview.RealTimeTelemetry.0\n" +
                                 "TacDAR\n" + 
-                                Crc64.Compute(password) + "\0";
+                                //"13a74c30" + "\0";  // apple
+                                "37bcf8f2" + "\0"; // glen
+                                //Crc64.Compute(password) + "\0"; // 
         byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(clientMessage);
         stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
       } else {
