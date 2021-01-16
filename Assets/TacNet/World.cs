@@ -180,7 +180,9 @@ public class World : MonoBehaviour
   private void CreateEntity(string id)
   {
     GameObject entity = Instantiate(entityPrefab);
-    entities.Add(id, entity.GetComponent<Entity>());
+    Entity e = entity.GetComponent<Entity>();
+    entities.Add(id, e);
+    e.SetID(id);
   }
 
   private void UpdateEntity(string id, string type, string[] data) {

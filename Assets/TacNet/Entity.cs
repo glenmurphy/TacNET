@@ -14,6 +14,7 @@ public class Entity : MonoBehaviour
 
   // Externally-provided data
   public Pos pos = new Pos(0, 0, 0);
+  public string id;
   public float roll;
   public float pitch;
   public float yaw;
@@ -85,6 +86,10 @@ public class Entity : MonoBehaviour
 
   public bool HasType(string typeIn) {
     return typeIndex.ContainsKey(typeIn.ToLower());
+  }
+
+  public void SetID(string idIn) {
+    id = idIn;
   }
 
   public void SetName(string nameIn) {

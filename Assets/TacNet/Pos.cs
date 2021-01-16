@@ -63,6 +63,11 @@ public class Pos
     return 2 * EarthRadius * Mathf.Asin(Mathf.Sqrt(h));
   }
 
+  public float GetDistanceToNM(Pos dest)
+  {
+    return ConvertKmToNm(GetDistanceTo(dest));
+  }
+
   public float GetBearingTo(Pos dest)
   {
     float dLon = (dest.lon - lon);

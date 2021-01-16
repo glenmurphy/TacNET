@@ -15,9 +15,11 @@ public class MainUI : MonoBehaviour
   GameObject connectingPanel;
   GameObject disconnectPanel;
 
+  GameObject postProcessing;
+
   Text targetName;
 
-  void Start()
+  void Awake()
   {
     loginPanel = transform.Find("LoginPanel").gameObject;
     hostname = loginPanel.transform.Find("Input-Hostname").GetComponent<InputField>();
@@ -29,11 +31,13 @@ public class MainUI : MonoBehaviour
 
     disconnectPanel = transform.Find("ButtonDisconnect").gameObject;
 
-    targetName = GameObject.Find("TargetName").GetComponent<Text>();
+    targetName = GameObject.Find("CraftName").GetComponent<Text>();
 
     hostname.text = PlayerPrefs.GetString("hostname");
     port.text = PlayerPrefs.GetString("port");
     password.text = PlayerPrefs.GetString("password");
+
+    postProcessing = GameObject.Find("PostProcessing");
 
     loginPanel.SetActive(true);
     connectingPanel.SetActive(false);
@@ -59,6 +63,28 @@ public class MainUI : MonoBehaviour
     if (Input.GetKeyDown(KeyCode.Return)) {
       HandleConnect();
     }
+  }
+
+  // Performance management ---------------------------------------------------
+  void ReduceSpeed(bool isPaused)
+  {
+    if (isPaused) {
+      Application.targetFrameRate = 15;
+      postProcessing.SetActive(false);
+    } else {
+      Application.targetFrameRate = -1;
+      postProcessing.SetActive(true);
+    }
+  }
+
+  void OnApplicationFocus(bool hasFocus)
+  {
+    ReduceSpeed(!hasFocus);
+  }
+
+  void OnApplicationPause(bool isPaused)
+  {
+    ReduceSpeed(isPaused);
   }
 
   public bool IsUIVisible() {

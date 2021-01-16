@@ -30,14 +30,19 @@ public class Pilot : MonoBehaviour
   // Internal
   public GameObject worldObject;
   World world;
-  Entity target;
-  int targetIndex = 0;
+  Entity craft;
+  int craftIndex = 0;
   MainUI mainUI;
+  Danger danger;
+  Speech speech;
+  string preferredCraft;
 
   public void Start()
   {
     world = worldObject.GetComponent<World>();
     mainUI = GetComponentInChildren<MainUI>();
+    speech = GetComponentInChildren<Speech>();
+    danger = new Danger(speech);
   }
 
   public void Update()
@@ -51,22 +56,24 @@ public class Pilot : MonoBehaviour
       e.Reposition(world.basePos);
     }
 
-    if (!HaveTarget())
+    if (!HaveCraft())
       return;
     
     // Camera Position
-    Transform targetTransform = target.gameObject.transform;
-    float angle = (-target.yaw + 90 + viewAngle) * Mathf.Deg2Rad;
-    Vector3 newPos = new Vector3(targetTransform.position.x - viewZoom * Mathf.Cos(angle),
-                                 targetTransform.position.y + viewZoom * viewHeight,
-                                 targetTransform.position.z - viewZoom * Mathf.Sin(angle));
+    Transform craftTransform = craft.gameObject.transform;
+    float angle = (-craft.yaw + 90 + viewAngle) * Mathf.Deg2Rad;
+    Vector3 newPos = new Vector3(craftTransform.position.x - viewZoom * Mathf.Cos(angle),
+                                 craftTransform.position.y + viewZoom * viewHeight,
+                                 craftTransform.position.z - viewZoom * Mathf.Sin(angle));
     transform.position = Vector3.Lerp(transform.position, newPos, posLerp * Time.deltaTime);
 
     // Camera Rotation
-    Vector3 cameraTarget = targetTransform.position;
+    Vector3 cameraTarget = craftTransform.position;
     cameraTarget.y += (viewZoom * viewHeight) * 0.1f;
     Quaternion newRot = Quaternion.LookRotation(cameraTarget - transform.position);
     transform.rotation = Quaternion.Slerp(transform.rotation, newRot, rotLerp * Time.deltaTime);
+
+    Detect();
   }
 
   void ProcessTouchInput()
@@ -78,9 +85,9 @@ public class Pilot : MonoBehaviour
           continue;
         
         if (touch.position.x < Screen.width / 2)
-          PrevTarget();
+          PrevCraft();
         else
-          NextTarget();
+          NextCraft();
       }
     }
   }
@@ -96,11 +103,11 @@ public class Pilot : MonoBehaviour
     if (e.type == EventType.KeyDown)
     {
       if (e.keyCode == KeyCode.A) {
-        FindMinTarget();
+        FindMinCraft();
       } else if (e.keyCode == KeyCode.LeftArrow) {
-        PrevTarget();
+        PrevCraft();
       } else if (e.keyCode == KeyCode.RightArrow) {
-        NextTarget();
+        NextCraft();
       }
     }
     else if (e.type == EventType.ScrollWheel)
@@ -111,22 +118,6 @@ public class Pilot : MonoBehaviour
     {
       RotateBy(e.delta.x);
     }
-  }
-
-  // Performance management ---------------------------------------------------
-  void ReduceSpeed(bool isPaused)
-  {
-    Application.targetFrameRate = isPaused ? 30 : -1;
-  }
-
-  void OnApplicationFocus(bool hasFocus)
-  {
-    ReduceSpeed(!hasFocus);
-  }
-
-  void OnApplicationPause(bool isPaused)
-  {
-    ReduceSpeed(isPaused);
   }
 
   // Render management --------------------------------------------------------
@@ -145,7 +136,7 @@ public class Pilot : MonoBehaviour
       }
 
       // Draw radar rings around our focused object
-      if (e == target) {
+      if (e == craft) {
         Vector3 ground = new Vector3(e.transform.position.x, groundDrawY, e.transform.position.z);
 
         Shapes.Draw.LineThickness = 0.08f;
@@ -195,62 +186,63 @@ public class Pilot : MonoBehaviour
     viewAngle = viewAngle % 360;
   }
 
-  // Target management --------------------------------------------------------
-  private void NextTarget()
+  // Craft management --------------------------------------------------------
+  private void NextCraft()
   {
-    targetIndex++;
-    FindTarget();
+    craftIndex++;
+    FindCraft();
   }
 
-  private void PrevTarget()
+  private void PrevCraft()
   {
-    targetIndex -= targetIndex > 0 ? 1 : 0;
-    FindTarget();
+    craftIndex -= craftIndex > 0 ? 1 : 0;
+    FindCraft();
   }
 
-  public void SetTarget(Entity entity)
+  public void SetCraft(Entity entity)
   {
-    if (target != entity) {
+    if (craft != entity) {
       viewAngle = 0;
     }
     
-    target = entity;
-    GameObject.Find("TargetName").GetComponent<UnityEngine.UI.Text>().text = entity.pilot;
-    PlayerPrefs.SetString("preferredTarget", entity.pilot);
+    craft = entity;
+    GameObject.Find("CraftName").GetComponent<UnityEngine.UI.Text>().text = entity.pilot;
+    preferredCraft = entity.pilot;
+    danger.Reset();
   }
 
-  public bool FindTargetByName(string name)
+  public bool FindCraftByName(string name)
   {
     foreach (KeyValuePair<string, Entity> entry in world.entities)
     {
       if (entry.Value.pilot.Equals(name)) {
-        SetTarget(entry.Value);
+        SetCraft(entry.Value);
         return true;
       }
     }
     return false;
   }
 
-  public bool FindTarget()
+  public bool FindCraft()
   {
-    List<Entity> targets = new List<Entity>();
+    List<Entity> crafts = new List<Entity>();
 
     foreach (KeyValuePair<string, Entity> entry in world.entities)
     {
       if (entry.Value.HasType("FixedWing")) {
-        targets.Add(entry.Value);
+        crafts.Add(entry.Value);
       }
     }
-    if (targets.Count > 0) {
-      SetTarget(targets[targetIndex % targets.Count]);
+    if (crafts.Count > 0) {
+      SetCraft(crafts[craftIndex % crafts.Count]);
       return true;
     }
     return false;
   }
 
-  public bool FindMinTarget()
+  public bool FindMinCraft()
   {
-    Entity minTarget = target;
+    Entity minCraft = craft;
     float minDistance = Single.MaxValue;
     float distance; 
     foreach (KeyValuePair<string, Entity> e in world.entities)
@@ -267,29 +259,30 @@ public class Pilot : MonoBehaviour
           continue;
         distance = e.Value.pos.GetDistanceTo(other.Value.pos);
 
-        if (distance < minDistance && e.Value != target) { // to toggle closest
+        if (distance < minDistance && e.Value != craft) { // to toggle closest
           minDistance = distance;
-          minTarget = e.Value;
+          minCraft = e.Value;
         }
       }
     }
 
-    if (minTarget) {
-      SetTarget(minTarget);
+    if (minCraft) {
+      SetCraft(minCraft);
       return true;
     }
     return false;
   }
 
-  public bool HaveTarget()
+  public bool HaveCraft()
   {
-    if (target || !world)
+    if (craft || !world)
       return true;
     
-    if (FindTargetByName(PlayerPrefs.GetString("preferredTarget")))
-      return true;
+    if (!String.IsNullOrEmpty(preferredCraft)) {
+      return FindCraftByName(preferredCraft);
+    }
 
-    if (FindMinTarget())
+    if (FindMinCraft())
       return true;
   
     return false;
@@ -298,17 +291,21 @@ public class Pilot : MonoBehaviour
   // Warning management -------------------------------------------------------
   void Detect()
   {
-    List<Entity> danger = new List<Entity>();
-
     foreach (KeyValuePair<string, Entity> entry in world.entities) {
-      Entity e = entry.Value;
+      Entity enemy = entry.Value;
 
-      if (!e.HasType("Weapon")) continue;
+      if (!enemy.HasType("Missile")) continue;
+      if (enemy.coalition == craft.coalition) continue;
 
-      float distance = target.pos.GetDistanceTo(e.pos);
-      float aspect = Math.Abs((e.heading - e.pos.GetBearingTo(target.pos) + 360) % 360);
-      if (distance < 60 && aspect < 20)
-        danger.Add(e);
+      float distance = craft.pos.GetDistanceToNM(enemy.pos);
+      if (distance > 50) continue;
+
+      float bearing = craft.pos.GetBearingTo(enemy.pos); // compass
+      float heading = bearing - craft.heading;           // nose
+      float aspect = Math.Abs((enemy.heading - heading + 360) % 360);
+
+      Debug.Log("Danger: " + bearing + " " + heading + " " + distance + " " + aspect);
+      danger.Update(enemy, heading, distance, aspect);
     }
   }
 }
