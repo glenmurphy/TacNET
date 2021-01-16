@@ -15,7 +15,7 @@ public class MainUI : MonoBehaviour
   GameObject connectingPanel;
   GameObject disconnectPanel;
 
-  GameObject postProcessing;
+  public GameObject postProcessing;
 
   Text targetName;
 
@@ -36,8 +36,6 @@ public class MainUI : MonoBehaviour
     hostname.text = PlayerPrefs.GetString("hostname");
     port.text = PlayerPrefs.GetString("port");
     password.text = PlayerPrefs.GetString("password");
-
-    postProcessing = GameObject.Find("PostProcessing");
 
     loginPanel.SetActive(true);
     connectingPanel.SetActive(false);
@@ -70,10 +68,10 @@ public class MainUI : MonoBehaviour
   {
     if (isPaused) {
       Application.targetFrameRate = 15;
-      postProcessing.SetActive(false);
+      if (postProcessing) postProcessing.SetActive(false);
     } else {
       Application.targetFrameRate = -1;
-      postProcessing.SetActive(true);
+      if (postProcessing) postProcessing.SetActive(true);
     }
   }
 

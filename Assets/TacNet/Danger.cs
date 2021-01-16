@@ -10,10 +10,12 @@ class Danger
       entity = entityIn;
       lastAlert = DateTime.Now;
       lastRange = lastRangeIn;
+      defeated = false;
     }
     public Entity entity;
     public DateTime lastAlert;
     public float lastRange;
+    public bool defeated;
   }
 
   Speech speech;
@@ -43,14 +45,22 @@ class Danger
   public void Update(Entity e, float bearing, float distance, float aspect)
   {
     if (tracked.ContainsKey(e.id)) {
-      Console.WriteLine(e.id);
+      if (tracked[e.id].defeated == true)
+        return;
       if (tracked[e.id].lastAlert < DateTime.Now - warningGap) {
-        Call(bearing, distance, aspect);
-        tracked[e.id].lastAlert = DateTime.Now;
+        if (speech.GetAspectCall(aspect) == Speech.Call.COLD ||
+            distance > tracked[e.id].lastRange) {
+          tracked[e.id].defeated = true;
+        } else {
+          Call(bearing, distance, aspect);
+          tracked[e.id].lastAlert = DateTime.Now;
+        }
+        tracked[e.id].lastRange = distance;
       }
     } else {
       tracked.Add(e.id, new Tracked(e, distance));
-      Call(bearing, distance, aspect);
+      if (aspect < 90 || aspect > 270)
+        Call(bearing, distance, aspect);
     }
   }
 }

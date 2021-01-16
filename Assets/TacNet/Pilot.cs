@@ -33,9 +33,10 @@ public class Pilot : MonoBehaviour
   Entity craft;
   int craftIndex = 0;
   MainUI mainUI;
-  Danger danger;
   Speech speech;
   string preferredCraft;
+
+  Danger danger;
 
   public void Start()
   {
@@ -149,9 +150,9 @@ public class Pilot : MonoBehaviour
   }
 
   public void DrawEntityDetails(Entity e) {
-    Vector3 ground = new Vector3(e.transform.position.x, groundDrawY, e.transform.position.z);
+    Vector3 ground = new Vector3(e.transform.position.x, groundDrawY, e.transform.position.z + 0.01f);
 
-    Shapes.Draw.LineThickness = 0.1f;
+    Shapes.Draw.LineThickness = 0.125f;
     Shapes.Draw.Line(e.transform.position, ground, colorHeight);
     Shapes.Draw.Ring(ground, Vector3.up, 0.01f, 0.005f, colorHeight);
 
@@ -294,15 +295,15 @@ public class Pilot : MonoBehaviour
     foreach (KeyValuePair<string, Entity> entry in world.entities) {
       Entity enemy = entry.Value;
 
-      if (!enemy.HasType("Missile")) continue;
       if (enemy.coalition == craft.coalition) continue;
+      if (!enemy.HasType("Missile")) continue;
 
       float distance = craft.pos.GetDistanceToNM(enemy.pos);
       if (distance > 50) continue;
 
       float bearing = craft.pos.GetBearingTo(enemy.pos); // compass
-      float heading = bearing - craft.heading;           // nose
-      float aspect = Math.Abs((enemy.heading - heading + 360) % 360);
+      float heading = (bearing - craft.heading + 360) % 360;           // nose
+      float aspect = Math.Abs(((bearing - 180) - enemy.heading + 720) % 360);
 
       Debug.Log("Danger: " + bearing + " " + heading + " " + distance + " " + aspect);
       danger.Update(enemy, heading, distance, aspect);

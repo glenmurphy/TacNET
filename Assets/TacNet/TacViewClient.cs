@@ -89,8 +89,9 @@ class TacViewClient
         string clientMessage = "XtraLib.Stream.0\n" +
                                 "Tacview.RealTimeTelemetry.0\n" +
                                 "TacDAR\n" + 
-                                "37bcf8f2" + "\0"; // glen
-                                //"13a74c30" + "\0";  // apple
+                                //"0\0";
+                                "37bcf8f2\0"; // glen
+                                //"13a74c30\0";  // apple
                                 //Crc64.Compute(password) + "\0"; // 
         byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(clientMessage);
         stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
