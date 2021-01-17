@@ -28,6 +28,7 @@ public class MainUI : MonoBehaviour
   public Pilot pilot;
 
   bool enablePostProcessing = true;
+  int idealFrameRate = -1;
 
   void Awake()
   {
@@ -66,9 +67,19 @@ public class MainUI : MonoBehaviour
 
   void Start()
   {
-    enablePostProcessing = (Application.platform != RuntimePlatform.Android);
+    if (Application.platform == RuntimePlatform.Android)
+    {
+      enablePostProcessing = false;
+      idealFrameRate = 30;
+      Screen.sleepTimeout = SleepTimeout.NeverSleep;
+    } 
+    else
+    {
+      enablePostProcessing = true;
+      idealFrameRate = -1;
+    }
+
     ReduceSpeed(false);
-    Screen.sleepTimeout = SleepTimeout.NeverSleep;
   }
 
   void Update() {
@@ -80,11 +91,14 @@ public class MainUI : MonoBehaviour
   // Performance management ---------------------------------------------------
   void ReduceSpeed(bool isPaused)
   {
-    if (isPaused) {
+    if (isPaused)
+    {
       Application.targetFrameRate = 15;
       postProcessing.SetActive(false);
-    } else {
-      Application.targetFrameRate = -1;
+    }
+    else
+    {
+      Application.targetFrameRate = idealFrameRate;
       postProcessing.SetActive(enablePostProcessing);
     }
   }
@@ -99,17 +113,18 @@ public class MainUI : MonoBehaviour
     ReduceSpeed(isPaused);
   }
 
-  public bool IsUIVisible() {
+  public bool IsLoggingIn() {
     return (loginPanel.activeSelf || connectingPanel.activeSelf);
   }
 
   // Input management ---------------------------------------------------------
   void ProcessTouchInput()
   {
-    if (IsUIVisible()) return;
+    if (IsLoggingIn()) return;
     if (Input.touchCount == 0) return;
 
-    for (int i = 0; i < Input.touchCount; i++) {
+    for (int i = 0; i < Input.touchCount; i++)
+    {
       Touch touch = Input.GetTouch(i);
       if (touch.phase != TouchPhase.Began)
         continue;
@@ -123,9 +138,7 @@ public class MainUI : MonoBehaviour
 
   public void OnGUI()
   {
-    if (IsUIVisible()) {
-      return;
-    }
+    if (IsLoggingIn()) return;
 
     Event e = Event.current;
 
