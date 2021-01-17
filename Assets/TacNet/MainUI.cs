@@ -7,39 +7,45 @@ using UnityEngine.EventSystems;
 public class MainUI : MonoBehaviour
 {
   public GameObject loginPanel;
-  public InputField hostname;
-  public InputField port;
-  public InputField password;
-  public Button connect;
+  InputField hostname;
+  InputField port;
+  InputField password;
+  InputField craftName;
+  Button connect;
   
   public GameObject connectingPanel;
-  public GameObject disconnectButton;
+
+  public GameObject controlsPanel;
+  GameObject nextButton;
+  GameObject resetButton;
+  GameObject nearButton;
+  GameObject prevButton;
+  GameObject disconnectButton;
 
   public GameObject postProcessing;
 
-  public InputField craftName;
-  public Text craftDisplay;
+  public Text statusDisplay;
   public Pilot pilot;
 
   bool enablePostProcessing = true;
 
   void Awake()
   {
-    //loginPanel = transform.Find("LoginPanel").gameObject;
-    //hostname = loginPanel.transform.Find("Input-Hostname").GetComponent<InputField>();
-    //port = loginPanel.transform.Find("Input-Port").GetComponent<InputField>();
-    //password = loginPanel.transform.Find("Input-Password").GetComponent<InputField>();
-    //connect = loginPanel.transform.Find("Button-Connect").GetComponent<Button>();
+    hostname = loginPanel.transform.Find("Input-Hostname").GetComponent<InputField>();
+    port = loginPanel.transform.Find("Input-Port").GetComponent<InputField>();
+    password = loginPanel.transform.Find("Input-Password").GetComponent<InputField>();
+    craftName = loginPanel.transform.Find("Input-CraftName").GetComponent<InputField>();
+    connect = loginPanel.transform.Find("Button-Connect").GetComponent<Button>();
 
-    //connectingPanel = transform.Find("ConnectingPanel").gameObject;
-    //disconnectButton = transform.Find("ButtonDisconnect").gameObject;
-
-    //targetName = GameObject.Find("CraftName").GetComponent<Text>();
+    nextButton = controlsPanel.transform.Find("ButtonNext").gameObject;
+    resetButton = controlsPanel.transform.Find("ButtonReset").gameObject;
+    nearButton = controlsPanel.transform.Find("ButtonNear").gameObject;
+    prevButton = controlsPanel.transform.Find("ButtonPrev").gameObject;
+    disconnectButton = controlsPanel.transform.Find("ButtonDisconnect").gameObject;
 
     //if (!String.IsNullOrEmpty(PlayerPrefs.GetString("hostname")))
     //  hostname.text = PlayerPrefs.GetString("hostname");
     hostname.text = "home.glenmurphy.com";
-
     port.text = PlayerPrefs.GetString("port");
     password.text = PlayerPrefs.GetString("password");
 
@@ -47,10 +53,14 @@ public class MainUI : MonoBehaviour
       craftName.text = PlayerPrefs.GetString("craftname");
 
     loginPanel.SetActive(true);
+    controlsPanel.SetActive(false);
     connectingPanel.SetActive(false);
-    disconnectButton.SetActive(false);
 
     connect.onClick.AddListener(HandleConnect);
+    nextButton.GetComponent<Button>().onClick.AddListener(HandleNext);
+    resetButton.GetComponent<Button>().onClick.AddListener(HandleReset);
+    nearButton.GetComponent<Button>().onClick.AddListener(HandleNear);
+    prevButton.GetComponent<Button>().onClick.AddListener(HandlePrev);
     disconnectButton.GetComponent<Button>().onClick.AddListener(HandleDisconnect);
   }
 
@@ -62,19 +72,7 @@ public class MainUI : MonoBehaviour
   }
 
   void Update() {
-    if (Input.GetKeyDown(KeyCode.Tab))
-    {
-        GameObject c = EventSystem.current.currentSelectedGameObject;
-        if (c == null) { return; }
-    
-        Selectable s = c.GetComponent<Selectable>();
-        if (s == null) { return; }
-
-        Selectable jump = Input.GetKey(KeyCode.LeftShift)
-            ? s.FindSelectableOnUp() : s.FindSelectableOnDown();
-        if (jump != null) { jump.Select(); }
-    }
-    if (Input.GetKeyDown(KeyCode.Return)) {
+    if (loginPanel.activeSelf && Input.GetKeyDown(KeyCode.Return)) {
       HandleConnect();
     }
   }
@@ -105,6 +103,43 @@ public class MainUI : MonoBehaviour
     return (loginPanel.activeSelf || connectingPanel.activeSelf);
   }
 
+  // Input management ---------------------------------------------------------
+  void ProcessTouchInput()
+  {
+    if (IsUIVisible()) return;
+    if (Input.touchCount == 0) return;
+
+    for (int i = 0; i < Input.touchCount; i++) {
+      Touch touch = Input.GetTouch(i);
+      if (touch.phase != TouchPhase.Began)
+        continue;
+
+      if (touch.position.y < Screen.height * 0.8f)
+      {
+        controlsPanel.SetActive(!controlsPanel.activeSelf);
+      }
+    }
+  }
+
+  public void OnGUI()
+  {
+    if (IsUIVisible()) {
+      return;
+    }
+
+    Event e = Event.current;
+
+    if (e.type == EventType.ScrollWheel)
+    {
+      pilot.ZoomBy(e.delta.y);
+    }
+    else if (e.type == EventType.MouseDrag)
+    {
+      pilot.RotateBy(e.delta.x);
+      pilot.ZoomBy(-e.delta.y * 0.2f);
+    }
+  }
+
   void HandleConnect() {
     PlayerPrefs.SetString("hostname", hostname.text);
     PlayerPrefs.SetString("port", port.text);
@@ -119,8 +154,28 @@ public class MainUI : MonoBehaviour
     connectingPanel.SetActive(true);
   }
 
-  public void HandleDisconnect() {
+  void HandleDisconnect() {
     SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+  }
+
+  void HandleNext()
+  {
+    pilot.NextCraft();
+  }
+
+  void HandlePrev()
+  {
+    pilot.NextCraft();
+  }
+
+  void HandleReset()
+  {
+    pilot.ResetCraft();
+  }
+
+  void HandleNear()
+  {
+    pilot.FindMinCraft();
   }
 
   public void HandleClientError() {
@@ -130,7 +185,7 @@ public class MainUI : MonoBehaviour
   public void HandleClientConnected() {
     loginPanel.SetActive(false);
     connectingPanel.SetActive(false);
-    disconnectButton.SetActive(true);
-    craftDisplay.text = "Awaiting data";
+    controlsPanel.SetActive(true);
+    statusDisplay.text = "Waiting for " + craftName.text;
   }
 }

@@ -39,7 +39,7 @@ public class Trail
       log.Add(new PosLog(time, pos, roll, count++));
     }
 
-    // We need to put this elsewhere
+    // We need to put this elsewhere - shouldn't only delete when we add
     while (log.Count > 0 && log[0].time < time - logLength)
       log.RemoveAt(0);
   }

@@ -36,6 +36,8 @@ public class Pilot : MonoBehaviour
   Speech speech;
 
   Danger danger;
+  DateTime lastDetect;
+  TimeSpan detectSpan = new TimeSpan(0, 0, 0, 0, 250);
   string preferredCraft;
 
   public void Start()
@@ -49,8 +51,6 @@ public class Pilot : MonoBehaviour
   Vector3 newPos = new Vector3(0, 0, 0);
   public void Update()
   {
-     ProcessTouchInput();
-
     // We update the position of each entity here so that we can guarantee that the camera movement
     // happens after the movement update
 
@@ -75,59 +75,10 @@ public class Pilot : MonoBehaviour
     Quaternion newRot = Quaternion.LookRotation(cameraTarget - transform.position);
     transform.rotation = Quaternion.Slerp(transform.rotation, newRot, rotLerp * Time.deltaTime);
 
-    Detect();
-  }
-
-  // Input management ---------------------------------------------------------
-  void ProcessTouchInput()
-  {
-    if (Input.touchCount == 0) return;
-
-    for (int i = 0; i < Input.touchCount; i++) {
-      Touch touch = Input.GetTouch(i);
-      if (touch.phase != TouchPhase.Began)
-        continue;
-
-      if (touch.position.y > Screen.height * 0.75f)
-      {
-        if (touch.position.x < Screen.width * 0.25f)
-          PrevCraft();
-        else if (touch.position.x < Screen.width * 0.75f)
-          FindMinCraft();
-        else
-          NextCraft();
-      }
-      else if (!String.IsNullOrEmpty(preferredCraft))
-      {
-        FindCraftByName(preferredCraft);
-      }
-    }
-  }
-
-  public void OnGUI()
-  {
-    if (mainUI.IsUIVisible()) {
-      return;
-    }
-
-    Event e = Event.current;
-    if (e.type == EventType.KeyDown)
+    if (lastDetect < DateTime.Now - detectSpan)
     {
-      if (e.keyCode == KeyCode.A) {
-        FindMinCraft();
-      } else if (e.keyCode == KeyCode.LeftArrow) {
-        PrevCraft();
-      } else if (e.keyCode == KeyCode.RightArrow) {
-        NextCraft();
-      }
-    }
-    else if (e.type == EventType.ScrollWheel)
-    {
-      ZoomBy(e.delta.y);
-    }
-    else if (e.type == EventType.MouseDrag)
-    {
-      RotateBy(e.delta.x);
+      Detect();
+      lastDetect = DateTime.Now;
     }
   }
 
@@ -137,25 +88,28 @@ public class Pilot : MonoBehaviour
     Shapes.Draw.LineGeometry = Shapes.LineGeometry.Volumetric3D;
     Shapes.Draw.LineThicknessSpace = Shapes.ThicknessSpace.Pixels;
 
+    // Draw radar rings around our focused object
+    if (craft) {
+      ground.Set(craft.transform.position.x, groundDrawY, craft.transform.position.z);
+      Shapes.Draw.LineThickness = 0.08f;
+      Shapes.Draw.Disc(ground, Vector3.up, Pos.ConvertNmToUnity(10), colorRadar1fill);
+      Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(10), 0.01f, colorRadar1);
+      Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(20), 0.03f, colorRadar2);
+      Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(40), 0.06f, colorRadar3);
+    }
+
+    Shapes.Draw.LineThickness = 0.125f;
     foreach (KeyValuePair<string, Entity> entry in world.entities) {
       Entity e = entry.Value;
       if (e.HasType("Human"))
         continue;
 
+      if (craft && craft.pos.GetDistanceToNM(e.pos) > 50f)
+        continue;
+
       // Draw the vertical height stem and trails
       if (e.HasType("Air") || e.HasType("Weapon")) {
         DrawEntityDetails(e);
-      }
-
-      // Draw radar rings around our focused object
-      if (e == craft) {
-        ground.Set(e.transform.position.x, groundDrawY, e.transform.position.z);
-
-        Shapes.Draw.LineThickness = 0.08f;
-        Shapes.Draw.Disc(ground, Vector3.up, Pos.ConvertNmToUnity(10), colorRadar1fill);
-        Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(10), 0.01f, colorRadar1);
-        Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(20), 0.03f, colorRadar2);
-        Shapes.Draw.Ring(ground, Vector3.up, Pos.ConvertNmToUnity(40), 0.06f, colorRadar3);
       }
     }
   }
@@ -164,7 +118,6 @@ public class Pilot : MonoBehaviour
   public void DrawEntityDetails(Entity e) {
     ground.Set(e.transform.position.x, groundDrawY, e.transform.position.z + 0.01f);
 
-    Shapes.Draw.LineThickness = 0.125f;
     Shapes.Draw.Line(e.transform.position, ground, colorHeight);
     Shapes.Draw.Ring(ground, Vector3.up, 0.01f, 0.005f, colorHeight);
 
@@ -186,30 +139,43 @@ public class Pilot : MonoBehaviour
   }
 
   // View management ----------------------------------------------------------
-  private void ZoomBy(float amount)
+  public void ZoomBy(float amount)
   {
     viewZoom += amount * 0.5f;
     if (viewZoom < 1) viewZoom = 1;
     if (viewZoom > 10) viewZoom = 10;
   }
 
-  private void RotateBy(float amount)
+  public void RotateBy(float amount)
   {
     viewAngle -= amount * 0.25f;
     viewAngle = viewAngle % 360;
   }
 
   // Craft management --------------------------------------------------------
-  private void NextCraft()
+  public void NextCraft()
   {
     craftIndex++;
     FindCraft();
   }
 
-  private void PrevCraft()
+  public void PrevCraft()
   {
     craftIndex -= craftIndex > 0 ? 1 : 0;
     FindCraft();
+  }
+
+  public void ResetCraft()
+  {
+    if (!String.IsNullOrEmpty(preferredCraft))
+    {
+      FindCraftByName(preferredCraft);
+    }
+    else
+    {
+      craftIndex = 0;
+      FindCraft();
+    }
   }
 
   public void SetCraft(Entity entity)
@@ -219,7 +185,7 @@ public class Pilot : MonoBehaviour
     }
     
     craft = entity;
-    GameObject.Find("CraftDisplay").GetComponent<UnityEngine.UI.Text>().text = entity.pilot;
+    GameObject.Find("StatusDisplay").GetComponent<UnityEngine.UI.Text>().text = entity.pilot;
     danger.Reset();
   }
 

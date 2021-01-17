@@ -240,7 +240,15 @@ public class World : MonoBehaviour
   }
   
   public void RemoveEntity(string id) {
-    Destroy(entities[id].gameObject, 0.5f);
-    entities.Remove(id);
+    StartCoroutine(RemoveCoroutine(id));
+  }
+
+  IEnumerator RemoveCoroutine(string id)
+  {
+    yield return new WaitForSeconds(3);
+    if (entities.ContainsKey(id)) {
+      Destroy(entities[id].gameObject, 0.1f);
+      entities.Remove(id);
+    }
   }
 }
