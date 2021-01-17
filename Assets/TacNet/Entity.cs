@@ -25,6 +25,10 @@ public class Entity : MonoBehaviour
   public string color;
   public string coalition;
 
+  // Used for figuring out the pos in unity-space
+  Vector3 posCache = Vector3.zero;
+  bool posCacheValid = false;
+
   // Internal vars
   Color drawColor;
   bool hasTransform = false;
@@ -32,25 +36,30 @@ public class Entity : MonoBehaviour
   public Dictionary<string, bool> typeIndex = new Dictionary<string, bool>();
   MeshRenderer mesh;
   GameObject model;
-  Trail trail = new Trail(120, 1.0f);
+  Trail trail = new Trail(120, 1.5f);
 
   // We position the ships (from Pilot.cs) relative to a point so that we can do things 
   // like scale their position non-linearly with distance (fisheye radar)
+  Vector3 rot = new Vector3(0, 0, 0); // mem
   public void Reposition(Pos origin)
   {
     if (!hasTransform) return;
-    Vector3 worldPos = pos.GetUnityPosition(origin);
+
+    if (!posCacheValid)
+      posCache = pos.GetUnityPosition(origin);
+    posCacheValid = true;
 
     // Stop initial jump
+    rot.Set(-pitch, heading, roll);
     if (transform.position.sqrMagnitude == 0)
     {
-      transform.position = worldPos;
-      transform.rotation = Quaternion.Euler(new Vector3(-pitch, heading, -roll));
+      transform.position = posCache;
+      transform.rotation = Quaternion.Euler(rot);
     } 
     else
     {
-      transform.position = Vector3.Lerp(transform.position, worldPos, posLerp * Time.deltaTime);
-      transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(new Vector3(-pitch, heading, -roll)), rotLerp * Time.deltaTime);
+      transform.position = Vector3.Lerp(transform.position, posCache, posLerp * Time.deltaTime);
+      transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(rot), rotLerp * Time.deltaTime);
     }
 
     if (!init && type.Length > 0) {
@@ -61,7 +70,7 @@ public class Entity : MonoBehaviour
   public void SetTransform(Dictionary<string, float> t, DateTime time)
   {
     hasTransform = true;
-
+    posCacheValid = false;
     if (t.ContainsKey("lon")) pos.lon = t["lon"];
     if (t.ContainsKey("lat")) pos.lat = t["lat"];
     if (t.ContainsKey("alt")) pos.alt = t["alt"];

@@ -8,6 +8,7 @@ public class Pos
   public const float DegreeLengthEquator = 111.321543f; // km of 1 lon degree
   public const float UnityScale = 0.25f; // 1km = N unity units
   public const float NmToKm = 1.852f;
+  public static Pos Zero = new Pos(0, 0, 0);
 
   public static float ConvertNmToUnity(float nm) {
     return (nm * NmToKm) * UnityScale;
@@ -27,7 +28,7 @@ public class Pos
     alt = altIn;
   }
 
-  public bool IsZero() {
+  public bool IsValid() {
     return (lon == 0 && lat == 0 && alt == 0);
   }
 

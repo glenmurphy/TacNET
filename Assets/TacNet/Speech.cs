@@ -129,9 +129,10 @@ public class Speech : MonoBehaviour
   }
 
   // Really need to check this!
-  public Call GetAspectCall(float aspect) {
+  public Call GetAspectCall(float aspect)
+  {
     if (aspect < 25 || aspect > 335) return Call.HOT;
-    if (aspect > 130 && aspect < 230) return Call.COLD;
+    if (aspect > 120 && aspect < 220) return Call.COLD;
     return Call.FLANKING;
   }
 

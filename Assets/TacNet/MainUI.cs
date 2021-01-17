@@ -6,43 +6,59 @@ using UnityEngine.EventSystems;
 
 public class MainUI : MonoBehaviour
 {
-  GameObject loginPanel;
-  InputField hostname;
-  InputField port;
-  InputField password;
-  Button connect;
+  public GameObject loginPanel;
+  public InputField hostname;
+  public InputField port;
+  public InputField password;
+  public Button connect;
   
-  GameObject connectingPanel;
-  GameObject disconnectPanel;
+  public GameObject connectingPanel;
+  public GameObject disconnectButton;
 
   public GameObject postProcessing;
 
-  Text targetName;
+  public InputField craftName;
+  public Text craftDisplay;
+  public Pilot pilot;
+
+  bool enablePostProcessing = true;
 
   void Awake()
   {
-    loginPanel = transform.Find("LoginPanel").gameObject;
-    hostname = loginPanel.transform.Find("Input-Hostname").GetComponent<InputField>();
-    port = loginPanel.transform.Find("Input-Port").GetComponent<InputField>();
-    password = loginPanel.transform.Find("Input-Password").GetComponent<InputField>();
-    connect = loginPanel.transform.Find("Button-Connect").GetComponent<Button>();
+    //loginPanel = transform.Find("LoginPanel").gameObject;
+    //hostname = loginPanel.transform.Find("Input-Hostname").GetComponent<InputField>();
+    //port = loginPanel.transform.Find("Input-Port").GetComponent<InputField>();
+    //password = loginPanel.transform.Find("Input-Password").GetComponent<InputField>();
+    //connect = loginPanel.transform.Find("Button-Connect").GetComponent<Button>();
 
-    connectingPanel = transform.Find("ConnectingPanel").gameObject;
+    //connectingPanel = transform.Find("ConnectingPanel").gameObject;
+    //disconnectButton = transform.Find("ButtonDisconnect").gameObject;
 
-    disconnectPanel = transform.Find("ButtonDisconnect").gameObject;
+    //targetName = GameObject.Find("CraftName").GetComponent<Text>();
 
-    targetName = GameObject.Find("CraftName").GetComponent<Text>();
+    //if (!String.IsNullOrEmpty(PlayerPrefs.GetString("hostname")))
+    //  hostname.text = PlayerPrefs.GetString("hostname");
+    hostname.text = "home.glenmurphy.com";
 
-    hostname.text = PlayerPrefs.GetString("hostname");
     port.text = PlayerPrefs.GetString("port");
     password.text = PlayerPrefs.GetString("password");
 
+    if (!String.IsNullOrEmpty(PlayerPrefs.GetString("craftname")))
+      craftName.text = PlayerPrefs.GetString("craftname");
+
     loginPanel.SetActive(true);
     connectingPanel.SetActive(false);
-    disconnectPanel.SetActive(false);
+    disconnectButton.SetActive(false);
 
     connect.onClick.AddListener(HandleConnect);
-    disconnectPanel.GetComponent<Button>().onClick.AddListener(HandleDisconnect);
+    disconnectButton.GetComponent<Button>().onClick.AddListener(HandleDisconnect);
+  }
+
+  void Start()
+  {
+    enablePostProcessing = (Application.platform != RuntimePlatform.Android);
+    ReduceSpeed(false);
+    Screen.sleepTimeout = SleepTimeout.NeverSleep;
   }
 
   void Update() {
@@ -68,10 +84,10 @@ public class MainUI : MonoBehaviour
   {
     if (isPaused) {
       Application.targetFrameRate = 15;
-      if (postProcessing) postProcessing.SetActive(false);
+      postProcessing.SetActive(false);
     } else {
       Application.targetFrameRate = -1;
-      if (postProcessing) postProcessing.SetActive(true);
+      postProcessing.SetActive(enablePostProcessing);
     }
   }
 
@@ -95,6 +111,10 @@ public class MainUI : MonoBehaviour
     PlayerPrefs.SetString("password", password.text);
 
     GameObject.FindObjectsOfType<World>()[0].Login(hostname.text, port.text, password.text);
+    
+    pilot.SetPreferredCraft(craftName.text);
+    PlayerPrefs.SetString("craftname", craftName.text);
+
     loginPanel.SetActive(false);
     connectingPanel.SetActive(true);
   }
@@ -110,7 +130,7 @@ public class MainUI : MonoBehaviour
   public void HandleClientConnected() {
     loginPanel.SetActive(false);
     connectingPanel.SetActive(false);
-    disconnectPanel.SetActive(true);
-    targetName.text = "Awaiting data";
+    disconnectButton.SetActive(true);
+    craftDisplay.text = "Awaiting data";
   }
 }

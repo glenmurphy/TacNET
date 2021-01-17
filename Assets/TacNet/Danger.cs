@@ -45,9 +45,13 @@ class Danger
   public void Update(Entity e, float bearing, float distance, float aspect)
   {
     if (tracked.ContainsKey(e.id)) {
+      // ignore defeated
       if (tracked[e.id].defeated == true)
         return;
+      
+      // if it's time for an update
       if (tracked[e.id].lastAlert < DateTime.Now - warningGap) {
+        // check to see if it's still a threat
         if (speech.GetAspectCall(aspect) == Speech.Call.COLD ||
             distance > tracked[e.id].lastRange) {
           tracked[e.id].defeated = true;
@@ -55,12 +59,15 @@ class Danger
           Call(bearing, distance, aspect);
           tracked[e.id].lastAlert = DateTime.Now;
         }
+
         tracked[e.id].lastRange = distance;
       }
     } else {
       tracked.Add(e.id, new Tracked(e, distance));
-      if (aspect < 90 || aspect > 270)
+      if (aspect < 90 || aspect > 270) {
         Call(bearing, distance, aspect);
+        tracked[e.id].lastAlert = DateTime.Now;
+      }
     }
   }
 }

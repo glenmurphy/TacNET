@@ -144,10 +144,11 @@ public class World : MonoBehaviour
     }
   }
 
+  Dictionary<string, float> res = new Dictionary<string, float>(); // mem
   private Dictionary<string, float> ParseTransform(string[] data) {
     // This is a straight port from JS, so probably not as correct as
     // a proper C# way
-    Dictionary<string, float> res = new Dictionary<string, float>();
+    res.Clear();
   
     if (!String.IsNullOrEmpty(data[0])) res.Add("lon", basePos.lon + float.Parse(data[0]));
     if (!String.IsNullOrEmpty(data[1])) res.Add("lat", basePos.lat + float.Parse(data[1]));

@@ -34,9 +34,9 @@ public class Pilot : MonoBehaviour
   int craftIndex = 0;
   MainUI mainUI;
   Speech speech;
-  string preferredCraft;
 
   Danger danger;
+  string preferredCraft;
 
   public void Start()
   {
@@ -46,15 +46,16 @@ public class Pilot : MonoBehaviour
     danger = new Danger(speech);
   }
 
+  Vector3 newPos = new Vector3(0, 0, 0);
   public void Update()
   {
      ProcessTouchInput();
 
     // We update the position of each entity here so that we can guarantee that the camera movement
     // happens after the movement update
+
     foreach (KeyValuePair<string, Entity> entry in world.entities) {
-      Entity e = entry.Value;
-      e.Reposition(world.basePos);
+      entry.Value.Reposition(world.basePos);
     }
 
     if (!HaveCraft())
@@ -63,9 +64,9 @@ public class Pilot : MonoBehaviour
     // Camera Position
     Transform craftTransform = craft.gameObject.transform;
     float angle = (-craft.yaw + 90 + viewAngle) * Mathf.Deg2Rad;
-    Vector3 newPos = new Vector3(craftTransform.position.x - viewZoom * Mathf.Cos(angle),
-                                 craftTransform.position.y + viewZoom * viewHeight,
-                                 craftTransform.position.z - viewZoom * Mathf.Sin(angle));
+    newPos.Set(craftTransform.position.x - viewZoom * Mathf.Cos(angle),
+               craftTransform.position.y + viewZoom * viewHeight,
+               craftTransform.position.z - viewZoom * Mathf.Sin(angle));
     transform.position = Vector3.Lerp(transform.position, newPos, posLerp * Time.deltaTime);
 
     // Camera Rotation
@@ -77,23 +78,32 @@ public class Pilot : MonoBehaviour
     Detect();
   }
 
+  // Input management ---------------------------------------------------------
   void ProcessTouchInput()
   {
-    if (Input.touchCount > 0){
-      for (int i = 0; i < Input.touchCount; i++) {
-        Touch touch = Input.GetTouch(i);
-        if (touch.phase != TouchPhase.Began)
-          continue;
-        
-        if (touch.position.x < Screen.width / 2)
+    if (Input.touchCount == 0) return;
+
+    for (int i = 0; i < Input.touchCount; i++) {
+      Touch touch = Input.GetTouch(i);
+      if (touch.phase != TouchPhase.Began)
+        continue;
+
+      if (touch.position.y > Screen.height * 0.75f)
+      {
+        if (touch.position.x < Screen.width * 0.25f)
           PrevCraft();
+        else if (touch.position.x < Screen.width * 0.75f)
+          FindMinCraft();
         else
           NextCraft();
+      }
+      else if (!String.IsNullOrEmpty(preferredCraft))
+      {
+        FindCraftByName(preferredCraft);
       }
     }
   }
 
-  // Input management ---------------------------------------------------------
   public void OnGUI()
   {
     if (mainUI.IsUIVisible()) {
@@ -122,6 +132,7 @@ public class Pilot : MonoBehaviour
   }
 
   // Render management --------------------------------------------------------
+  Vector3 ground;
   public void OnPostRender() {
     Shapes.Draw.LineGeometry = Shapes.LineGeometry.Volumetric3D;
     Shapes.Draw.LineThicknessSpace = Shapes.ThicknessSpace.Pixels;
@@ -138,7 +149,7 @@ public class Pilot : MonoBehaviour
 
       // Draw radar rings around our focused object
       if (e == craft) {
-        Vector3 ground = new Vector3(e.transform.position.x, groundDrawY, e.transform.position.z);
+        ground.Set(e.transform.position.x, groundDrawY, e.transform.position.z);
 
         Shapes.Draw.LineThickness = 0.08f;
         Shapes.Draw.Disc(ground, Vector3.up, Pos.ConvertNmToUnity(10), colorRadar1fill);
@@ -149,15 +160,16 @@ public class Pilot : MonoBehaviour
     }
   }
 
+  List<PosLog> log; //mem
   public void DrawEntityDetails(Entity e) {
-    Vector3 ground = new Vector3(e.transform.position.x, groundDrawY, e.transform.position.z + 0.01f);
+    ground.Set(e.transform.position.x, groundDrawY, e.transform.position.z + 0.01f);
 
     Shapes.Draw.LineThickness = 0.125f;
     Shapes.Draw.Line(e.transform.position, ground, colorHeight);
     Shapes.Draw.Ring(ground, Vector3.up, 0.01f, 0.005f, colorHeight);
 
     using (Shapes.PolylinePath trail = new Shapes.PolylinePath()) {
-      List<PosLog> log = e.GetLog();
+      log = e.GetLog();
       // Draws from oldest first; skip the most recent one in case the trail is ahead of
       // the aircraft (from lerping aircraft position)
       for (int i = 0; i < log.Count - 2; i++) {
@@ -207,9 +219,14 @@ public class Pilot : MonoBehaviour
     }
     
     craft = entity;
-    GameObject.Find("CraftName").GetComponent<UnityEngine.UI.Text>().text = entity.pilot;
-    preferredCraft = entity.pilot;
+    GameObject.Find("CraftDisplay").GetComponent<UnityEngine.UI.Text>().text = entity.pilot;
     danger.Reset();
+  }
+
+  public void SetPreferredCraft(string name)
+  {
+    preferredCraft = name;
+    FindCraftByName(name);
   }
 
   public bool FindCraftByName(string name)
@@ -292,20 +309,20 @@ public class Pilot : MonoBehaviour
   // Warning management -------------------------------------------------------
   void Detect()
   {
+    Entity enemy;
     foreach (KeyValuePair<string, Entity> entry in world.entities) {
-      Entity enemy = entry.Value;
+      enemy = entry.Value;
 
       if (enemy.coalition == craft.coalition) continue;
       if (!enemy.HasType("Missile")) continue;
 
       float distance = craft.pos.GetDistanceToNM(enemy.pos);
-      if (distance > 50) continue;
+      if (distance > 35) continue;
 
       float bearing = craft.pos.GetBearingTo(enemy.pos); // compass
       float heading = (bearing - craft.heading + 360) % 360;           // nose
       float aspect = Math.Abs(((bearing - 180) - enemy.heading + 720) % 360);
 
-      Debug.Log("Danger: " + bearing + " " + heading + " " + distance + " " + aspect);
       danger.Update(enemy, heading, distance, aspect);
     }
   }

@@ -43,11 +43,11 @@ class TacViewClient
     }
   }
 
+  OnMessageEventArgs args = new OnMessageEventArgs(); // mem
   private void HandleLine(string line) {
     if (line == "Tacview.RealTimeTelemetry.0")
       Login();
     
-    OnMessageEventArgs args = new OnMessageEventArgs();
     args.str = line;
     OnMessage?.Invoke(this, args);
   }
@@ -58,11 +58,11 @@ class TacViewClient
     {
       socket = new TcpClient(host, port);
       OnConnect?.Invoke(this, new EventArgs());
+      NetworkStream stream = socket.GetStream();
+      StreamReader reader = new StreamReader(stream);
+      string line;
       while (true)
       {
-        NetworkStream stream = socket.GetStream();
-        StreamReader reader = new StreamReader(stream);
-        string line;
         while ((line = reader.ReadLine()) != null) 
         {
           HandleLine(line);
