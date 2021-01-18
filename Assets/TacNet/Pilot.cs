@@ -107,7 +107,7 @@ public class Pilot : MonoBehaviour
       if (e.HasType("Human"))
         continue;
 
-      if (craft && craft.pos.GetDistanceToNM(e.pos) > 50f)
+      if (craft && craft.pos.GetDistanceToNM(e.pos) > 32f)
         continue;
 
       // Draw the vertical height stem and trails

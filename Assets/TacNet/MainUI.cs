@@ -53,12 +53,12 @@ public class MainUI : MonoBehaviour
     prevButton = controlsPanel.transform.Find("ButtonPrev").gameObject;
     disconnectButton = controlsPanel.transform.Find("ButtonDisconnect").gameObject;
 
-    //if (!String.IsNullOrEmpty(PlayerPrefs.GetString("hostname")))
-    //  hostname.text = PlayerPrefs.GetString("hostname");
-    hostname.text = "home.glenmurphy.com";
-    port.text = PlayerPrefs.GetString("port");
-    password.text = PlayerPrefs.GetString("password");
-
+    if (!String.IsNullOrEmpty(PlayerPrefs.GetString("hostname")))
+      hostname.text = PlayerPrefs.GetString("hostname");
+    if (!String.IsNullOrEmpty(PlayerPrefs.GetString("port")))
+      port.text = PlayerPrefs.GetString("port");
+    if (!String.IsNullOrEmpty(PlayerPrefs.GetString("password")))
+      password.text = PlayerPrefs.GetString("password");
     if (!String.IsNullOrEmpty(PlayerPrefs.GetString("craftname")))
       craftName.text = PlayerPrefs.GetString("craftname");
 
@@ -67,6 +67,8 @@ public class MainUI : MonoBehaviour
     connectingPanel.SetActive(false);
 
     connect.onClick.AddListener(HandleConnect);
+    EventSystem.current.SetSelectedGameObject(connect.gameObject, null);
+
     nextButton.GetComponent<Button>().onClick.AddListener(HandleNext);
     resetButton.GetComponent<Button>().onClick.AddListener(HandleReset);
     nearButton.GetComponent<Button>().onClick.AddListener(HandleNear);

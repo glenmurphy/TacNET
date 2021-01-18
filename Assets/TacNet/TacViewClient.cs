@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Net.Sockets;
 using UnityEngine;
+using DamienG.Security.Cryptography;
 
 public class OnMessageEventArgs : EventArgs
 {
@@ -77,6 +78,19 @@ class TacViewClient
     }
   }
 
+  private string HashPassword(string pass)
+  {
+    if (String.IsNullOrEmpty(pass))
+      return "0";
+    
+    Crc32 crc32 = new Crc32();
+    byte[] passwordBytes = Encoding.Unicode.GetBytes(pass);
+    string hash = String.Empty;
+    foreach (byte b in crc32.ComputeHash(passwordBytes))
+      hash += b.ToString("x2").ToLower();
+    return hash;
+  }
+
   private void Login()
   {
     Debug.Log("Logging in");
@@ -90,9 +104,10 @@ class TacViewClient
                                 "Tacview.RealTimeTelemetry.0\n" +
                                 "TacDAR\n" + 
                                 //"0\0";
-                                "37bcf8f2\0"; // glen
+                                //"37bcf8f2\0"; // glen
                                 //"13a74c30\0";  // apple
-                                //Crc64.Compute(password) + "\0"; // 
+                                HashPassword(password) + "\0"; // 
+        Debug.Log(clientMessage);
         byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(clientMessage);
         stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
       } else {
