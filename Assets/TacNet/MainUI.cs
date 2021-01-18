@@ -81,11 +81,13 @@ public class MainUI : MonoBehaviour
       enablePostProcessing = false;
       passiveFrameRate = 15;
       Screen.sleepTimeout = SleepTimeout.NeverSleep;
+      RenderSettings.fog = false;
     } 
     else
     {
       enablePostProcessing = true;
       passiveFrameRate = -1;
+      RenderSettings.fog = true;
     }
 
     UpdatePerformance();
