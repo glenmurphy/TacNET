@@ -36,7 +36,7 @@ public class Entity : MonoBehaviour
   public Dictionary<string, bool> typeIndex = new Dictionary<string, bool>();
   MeshRenderer mesh;
   GameObject model;
-  Trail trail = new Trail(120, 1.5f);
+  Trail trail = new Trail(120, 2f);
 
   // We position the ships (from Pilot.cs) relative to a point so that we can do things 
   // like scale their position non-linearly with distance (fisheye radar)
@@ -50,7 +50,7 @@ public class Entity : MonoBehaviour
     posCacheValid = true;
 
     // Stop initial jump
-    rot.Set(-pitch, heading, roll);
+    rot.Set(-pitch, heading, -roll);
     if (transform.position.sqrMagnitude == 0)
     {
       transform.position = posCache;

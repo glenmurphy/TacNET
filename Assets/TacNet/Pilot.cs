@@ -31,7 +31,6 @@ public class Pilot : MonoBehaviour
   public GameObject worldObject;
   World world;
   Entity craft;
-  int craftIndex = 0;
   MainUI mainUI;
   Speech speech;
 
@@ -67,13 +66,17 @@ public class Pilot : MonoBehaviour
     newPos.Set(craftTransform.position.x - viewZoom * Mathf.Cos(angle),
                craftTransform.position.y + viewZoom * viewHeight,
                craftTransform.position.z - viewZoom * Mathf.Sin(angle));
-    transform.position = Vector3.Lerp(transform.position, newPos, posLerp * Time.deltaTime);
+    
+    float lerp = (mainUI.InTouch() ? posLerp * 10f : posLerp) * Time.deltaTime;
+    transform.position = Vector3.Lerp(transform.position, newPos, lerp);
 
     // Camera Rotation
     Vector3 cameraTarget = craftTransform.position;
     cameraTarget.y += (viewZoom * viewHeight) * 0.1f;
     Quaternion newRot = Quaternion.LookRotation(cameraTarget - transform.position);
-    transform.rotation = Quaternion.Slerp(transform.rotation, newRot, rotLerp * Time.deltaTime);
+
+    lerp = (mainUI.InTouch() ? rotLerp * 10f : rotLerp) * Time.deltaTime;
+    transform.rotation = Quaternion.Slerp(transform.rotation, newRot, lerp);
 
     if (lastDetect < DateTime.Now - detectSpan)
     {
@@ -155,14 +158,12 @@ public class Pilot : MonoBehaviour
   // Craft management --------------------------------------------------------
   public void NextCraft()
   {
-    craftIndex++;
-    FindCraft();
+    FindCraft(1);
   }
 
   public void PrevCraft()
   {
-    craftIndex -= craftIndex > 0 ? 1 : 0;
-    FindCraft();
+    FindCraft(-1);
   }
 
   public void ResetCraft()
@@ -173,8 +174,7 @@ public class Pilot : MonoBehaviour
     }
     else
     {
-      craftIndex = 0;
-      FindCraft();
+      FindCraft(0);
     }
   }
 
@@ -199,7 +199,7 @@ public class Pilot : MonoBehaviour
   {
     foreach (KeyValuePair<string, Entity> entry in world.entities)
     {
-      if (entry.Value.pilot.Equals(name)) {
+      if (entry.Value.pilot.Equals(name, StringComparison.OrdinalIgnoreCase)) {
         SetCraft(entry.Value);
         return true;
       }
@@ -207,18 +207,22 @@ public class Pilot : MonoBehaviour
     return false;
   }
 
-  public bool FindCraft()
+  public bool FindCraft(int incr)
   {
     List<Entity> crafts = new List<Entity>();
+    int craftIndex = 0;
 
     foreach (KeyValuePair<string, Entity> entry in world.entities)
     {
-      if (entry.Value.HasType("FixedWing")) {
+      if (entry.Value == craft)
+        craftIndex = crafts.Count;
+      if (entry.Value.HasType("FixedWing"))
         crafts.Add(entry.Value);
-      }
     }
+    
     if (crafts.Count > 0) {
-      SetCraft(crafts[craftIndex % crafts.Count]);
+      craftIndex = (craftIndex + incr + crafts.Count) % crafts.Count;
+      SetCraft(crafts[craftIndex]);
       return true;
     }
     return false;

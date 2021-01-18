@@ -14,6 +14,8 @@ public class Speech : MonoBehaviour
   public enum Call
   {
     NONE,
+    CONNECTED,
+    PLEASE_CONNECT,
     BANDIT,
     CLOSE,
     COLD,
@@ -46,7 +48,9 @@ public class Speech : MonoBehaviour
 
   void Awake()
   {
-    Debug.Log("Starting");
+    clips[Call.CONNECTED] = Resources.Load<AudioClip>("speech-connected");
+    clips[Call.PLEASE_CONNECT] = Resources.Load<AudioClip>("speech-please connect");
+
     clips[Call.BANDIT] = Resources.Load<AudioClip>("speech-bandit");
     clips[Call.COLD] = Resources.Load<AudioClip>("speech-cold");
     clips[Call.FLANKING] = Resources.Load<AudioClip>("speech-flanking");
@@ -77,6 +81,7 @@ public class Speech : MonoBehaviour
     clips[Call.OCLOCK12] = Resources.Load<AudioClip>("speech-twelve oclock");
     
     sources = GetComponents<AudioSource>();
+    Say(new Call[] {Call.PLEASE_CONNECT});
   }
 
   void Update()

@@ -24,11 +24,20 @@ public class MainUI : MonoBehaviour
 
   public GameObject postProcessing;
 
+  public Speech speech;
+
   public Text statusDisplay;
   public Pilot pilot;
 
   bool enablePostProcessing = true;
-  int idealFrameRate = -1;
+  int passiveFrameRate; // after drags are done; configured in Start();
+  int backgroundFrameRate = 15; // when we don't have focus
+
+  // Understand what state we're in so we can modify clocks accordingly
+  DateTime lastInteractionTime = DateTime.Now;
+  TimeSpan interactionSpeedUpDuration = new TimeSpan(0, 0, 5);
+  TimeSpan interactionTouchDuration = new TimeSpan(0, 0, 0, 0, 500);
+  bool hasFocus = true;
 
   void Awake()
   {
@@ -70,47 +79,58 @@ public class MainUI : MonoBehaviour
     if (Application.platform == RuntimePlatform.Android)
     {
       enablePostProcessing = false;
-      idealFrameRate = 30;
+      passiveFrameRate = 15;
       Screen.sleepTimeout = SleepTimeout.NeverSleep;
     } 
     else
     {
       enablePostProcessing = true;
-      idealFrameRate = -1;
+      passiveFrameRate = -1;
     }
 
-    ReduceSpeed(false);
+    UpdatePerformance();
   }
 
   void Update() {
     if (loginPanel.activeSelf && Input.GetKeyDown(KeyCode.Return)) {
       HandleConnect();
     }
+    UpdatePerformance();
   }
 
   // Performance management ---------------------------------------------------
-  void ReduceSpeed(bool isPaused)
+  public bool InSpeedUp() {
+    return (lastInteractionTime > DateTime.Now - interactionSpeedUpDuration);
+  }
+  public bool InTouch() {
+    return (lastInteractionTime > DateTime.Now - interactionTouchDuration);
+  }
+
+  void UpdatePerformance()
   {
-    if (isPaused)
+    if (hasFocus)
     {
-      Application.targetFrameRate = 15;
-      postProcessing.SetActive(false);
+      if (InSpeedUp())
+        Application.targetFrameRate = -1;
+      else
+        Application.targetFrameRate = passiveFrameRate;
+      postProcessing.SetActive(enablePostProcessing);
     }
     else
     {
-      Application.targetFrameRate = idealFrameRate;
-      postProcessing.SetActive(enablePostProcessing);
+      Application.targetFrameRate = backgroundFrameRate;
+      postProcessing.SetActive(false);
     }
   }
 
-  void OnApplicationFocus(bool hasFocus)
+  void OnApplicationFocus(bool focus)
   {
-    ReduceSpeed(!hasFocus);
+    hasFocus = focus;
   }
 
   void OnApplicationPause(bool isPaused)
   {
-    ReduceSpeed(isPaused);
+    hasFocus = !isPaused;
   }
 
   public bool IsLoggingIn() {
@@ -129,10 +149,12 @@ public class MainUI : MonoBehaviour
       if (touch.phase != TouchPhase.Began)
         continue;
 
+      /*
       if (touch.position.y < Screen.height * 0.8f)
       {
         controlsPanel.SetActive(!controlsPanel.activeSelf);
       }
+      */
     }
   }
 
@@ -145,11 +167,13 @@ public class MainUI : MonoBehaviour
     if (e.type == EventType.ScrollWheel)
     {
       pilot.ZoomBy(e.delta.y);
+      lastInteractionTime = DateTime.Now;
     }
     else if (e.type == EventType.MouseDrag)
     {
-      pilot.RotateBy(e.delta.x);
-      pilot.ZoomBy(-e.delta.y * 0.2f);
+      pilot.RotateBy(e.delta.x * 0.5f);
+      pilot.ZoomBy(-e.delta.y * 0.1f);
+      lastInteractionTime = DateTime.Now;
     }
   }
 
@@ -178,7 +202,7 @@ public class MainUI : MonoBehaviour
 
   void HandlePrev()
   {
-    pilot.NextCraft();
+    pilot.PrevCraft();
   }
 
   void HandleReset()
@@ -196,6 +220,8 @@ public class MainUI : MonoBehaviour
   }
 
   public void HandleClientConnected() {
+    speech.Say(new Speech.Call[] {Speech.Call.CONNECTED});
+
     loginPanel.SetActive(false);
     connectingPanel.SetActive(false);
     controlsPanel.SetActive(true);
