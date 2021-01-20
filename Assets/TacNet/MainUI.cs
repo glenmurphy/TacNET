@@ -8,7 +8,7 @@ using UnityEngine.EventSystems;
 
 public class MainUI : MonoBehaviour
 {
-  public float ClickSize = 125f;
+  public float ClickSize = 250f;
 
   public GameObject loginPanel;
   InputField hostname;
@@ -28,11 +28,14 @@ public class MainUI : MonoBehaviour
 
   public GameObject postProcessing;
 
+  public Details details;
+
   public Speech speech;
 
   public Text statusDisplay;
   public Pilot pilot;
   World world;
+  Camera cam;
 
   bool enablePostProcessing = true;
   int passiveFrameRate; // after drags are done; configured in Start();
@@ -72,6 +75,7 @@ public class MainUI : MonoBehaviour
     loginPanel.SetActive(true);
     controlsPanel.SetActive(false);
     connectingPanel.SetActive(false);
+    details.gameObject.SetActive(false);
 
     connect.onClick.AddListener(HandleConnect);
     EventSystem.current.SetSelectedGameObject(connect.gameObject, null);
@@ -83,6 +87,7 @@ public class MainUI : MonoBehaviour
     disconnectButton.GetComponent<Button>().onClick.AddListener(HandleDisconnect);
 
     world = GameObject.FindObjectsOfType<World>()[0];
+    cam = transform.parent.GetComponent<Camera>();
   }
 
   void Start()
@@ -109,6 +114,16 @@ public class MainUI : MonoBehaviour
       HandleConnect();
     }
     UpdatePerformance();
+    UpdateSelected();
+  }
+
+  void UpdateSelected() {
+    if (!selectedEntity) return;
+
+    details.transform.position = cam.WorldToScreenPoint(selectedEntity.posCache);
+
+    details.SetLonLat(selectedEntity.pos.GetLatLon());
+    details.SetAlt((int)selectedEntity.pos.GetAltFt() + "'");
   }
 
   // Performance management ---------------------------------------------------
@@ -194,7 +209,6 @@ public class MainUI : MonoBehaviour
     float minDistance = Single.MaxValue;
     float distance;
     Entity closest = null;
-    Camera cam = transform.parent.GetComponent<Camera>();
 
     foreach (KeyValuePair<string, Entity> entry in world.entities) {
       if (!entry.Value.HasModel())
@@ -221,7 +235,15 @@ public class MainUI : MonoBehaviour
   void HandleSelect(Entity e)
   {
     if (selectedEntity) selectedEntity.Deselect();
-    if (e) e.Select();
+
+    if (e) {
+      e.Select();
+      details.SetName(e.entityName);
+      details.gameObject.SetActive(true);
+    } else {
+      details.gameObject.SetActive(false);
+    }
+    
     selectedEntity = e;
   }
 

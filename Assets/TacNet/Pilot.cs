@@ -110,9 +110,6 @@ public class Pilot : MonoBehaviour
       if (craft && craft.pos.GetDistanceToNM(e.pos) > 32f)
         continue;
 
-      if (e.IsSelected())
-        Shapes.Draw.Ring(e.transform.position, Vector3.up, 0.2f, 0.02f, colorRadar1);
-
       // Draw the vertical height stem and trails
       if (e.HasType("Air") || e.HasType("Weapon")) {
         DrawEntityAirDetails(e);

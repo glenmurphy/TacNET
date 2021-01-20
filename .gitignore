@@ -1,6 +1,7 @@
 # 3P content / TacNET-specifc
 /[Aa]ssets/[Ss]hapes/
 /[Aa]ssets/3[Pp]/
+/[Aa]ssets/TextMesh Pro/
 .vscode/
 
 # This .gitignore file should be placed at the root of your Unity project directory
