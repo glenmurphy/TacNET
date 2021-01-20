@@ -62,13 +62,11 @@ class TacViewClient
       NetworkStream stream = socket.GetStream();
       StreamReader reader = new StreamReader(stream);
       string line;
-      while (true)
+      while ((line = reader.ReadLine()) != null)
       {
-        while ((line = reader.ReadLine()) != null) 
-        {
-          HandleLine(line);
-        }
+        HandleLine(line);
       }
+      OnError?.Invoke(this, new EventArgs());
     }
     catch (Exception e)
     {
@@ -103,10 +101,7 @@ class TacViewClient
         string clientMessage = "XtraLib.Stream.0\n" +
                                 "Tacview.RealTimeTelemetry.0\n" +
                                 "TacDAR\n" + 
-                                //"0\0";
-                                //"37bcf8f2\0"; // glen
-                                //"13a74c30\0";  // apple
-                                HashPassword(password) + "\0"; // 
+                                HashPassword(password) + "\0";
         Debug.Log(clientMessage);
         byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(clientMessage);
         stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);

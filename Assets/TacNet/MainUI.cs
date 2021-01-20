@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -6,6 +8,8 @@ using UnityEngine.EventSystems;
 
 public class MainUI : MonoBehaviour
 {
+  public float ClickSize = 125f;
+
   public GameObject loginPanel;
   InputField hostname;
   InputField port;
@@ -28,6 +32,7 @@ public class MainUI : MonoBehaviour
 
   public Text statusDisplay;
   public Pilot pilot;
+  World world;
 
   bool enablePostProcessing = true;
   int passiveFrameRate; // after drags are done; configured in Start();
@@ -38,6 +43,8 @@ public class MainUI : MonoBehaviour
   TimeSpan interactionSpeedUpDuration = new TimeSpan(0, 0, 5);
   TimeSpan interactionTouchDuration = new TimeSpan(0, 0, 0, 0, 500);
   bool hasFocus = true;
+
+  public Entity selectedEntity;
 
   void Awake()
   {
@@ -74,6 +81,8 @@ public class MainUI : MonoBehaviour
     nearButton.GetComponent<Button>().onClick.AddListener(HandleNear);
     prevButton.GetComponent<Button>().onClick.AddListener(HandlePrev);
     disconnectButton.GetComponent<Button>().onClick.AddListener(HandleDisconnect);
+
+    world = GameObject.FindObjectsOfType<World>()[0];
   }
 
   void Start()
@@ -152,13 +161,6 @@ public class MainUI : MonoBehaviour
       Touch touch = Input.GetTouch(i);
       if (touch.phase != TouchPhase.Began)
         continue;
-
-      /*
-      if (touch.position.y < Screen.height * 0.8f)
-      {
-        controlsPanel.SetActive(!controlsPanel.activeSelf);
-      }
-      */
     }
   }
 
@@ -167,7 +169,10 @@ public class MainUI : MonoBehaviour
     if (IsLoggingIn()) return;
 
     Event e = Event.current;
-
+    if (e.type == EventType.MouseDown)
+    {
+      HandleClick(e.mousePosition.x, Screen.height - e.mousePosition.y);
+    }
     if (e.type == EventType.ScrollWheel)
     {
       pilot.ZoomBy(e.delta.y);
@@ -181,12 +186,51 @@ public class MainUI : MonoBehaviour
     }
   }
 
+  // Takes coordinates in screen coordinates (0,0 at bottom left), and not event coordinates
+  void HandleClick(float x, float y)
+  {
+    Vector3 screenPos;
+
+    float minDistance = Single.MaxValue;
+    float distance;
+    Entity closest = null;
+    Camera cam = transform.parent.GetComponent<Camera>();
+
+    foreach (KeyValuePair<string, Entity> entry in world.entities) {
+      if (!entry.Value.HasModel())
+        continue;
+      if (entry.Value == selectedEntity)
+        continue;
+
+      screenPos = cam.WorldToScreenPoint(entry.Value.posCache);
+      distance = Mathf.Pow(screenPos.x - x, 2) + Mathf.Pow(screenPos.y - y, 2);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closest = entry.Value;
+      }
+    }
+
+    // should normalize ClickSize by Camera.pixelWidth;
+    if (closest != null && Mathf.Sqrt(minDistance) < ClickSize)
+      HandleSelect(closest);
+    else
+      HandleSelect(null);
+  }
+
+  void HandleSelect(Entity e)
+  {
+    if (selectedEntity) selectedEntity.Deselect();
+    if (e) e.Select();
+    selectedEntity = e;
+  }
+
   void HandleConnect() {
     PlayerPrefs.SetString("hostname", hostname.text);
     PlayerPrefs.SetString("port", port.text);
     PlayerPrefs.SetString("password", password.text);
 
-    GameObject.FindObjectsOfType<World>()[0].Login(hostname.text, port.text, password.text);
+    world.Login(hostname.text, port.text, password.text);
     
     pilot.SetPreferredCraft(craftName.text);
     PlayerPrefs.SetString("craftname", craftName.text);
@@ -220,12 +264,21 @@ public class MainUI : MonoBehaviour
   }
 
   public void HandleClientError() {
+    StartCoroutine(ErrorCoroutine());
+  }
+
+  IEnumerator ErrorCoroutine()
+  {
+    statusDisplay.text = "";
+    connectingPanel.SetActive(true);
+    controlsPanel.SetActive(false);
+    connectingPanel.GetComponentInChildren<Text>().text = "Connection Failed";
+    yield return new WaitForSeconds(2);
     HandleDisconnect();
   }
 
   public void HandleClientConnected() {
-    speech.Say(new Speech.Call[] {Speech.Call.CONNECTED});
-
+    // speech.Say(new Speech.Call[] {Speech.Call.CONNECTED});
     loginPanel.SetActive(false);
     connectingPanel.SetActive(false);
     controlsPanel.SetActive(true);

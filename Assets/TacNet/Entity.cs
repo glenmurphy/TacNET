@@ -26,8 +26,8 @@ public class Entity : MonoBehaviour
   public string coalition;
 
   // Used for figuring out the pos in unity-space
-  Vector3 posCache = Vector3.zero;
-  bool posCacheValid = false;
+  public Vector3 posCache = Vector3.zero;
+  public bool posCacheValid = false;
 
   // Internal vars
   Color drawColor;
@@ -37,6 +37,8 @@ public class Entity : MonoBehaviour
   MeshRenderer mesh;
   GameObject model;
   Trail trail = new Trail(120, 2f);
+
+  bool selected = false;
 
   // We position the ships (from Pilot.cs) relative to a point so that we can do things 
   // like scale their position non-linearly with distance (fisheye radar)
@@ -93,52 +95,72 @@ public class Entity : MonoBehaviour
     UpdateModel();
   }
 
-  public bool HasType(string typeIn) {
+  public void Select()
+  {
+    selected = true;
+  }
+
+  public void Deselect() 
+  {
+    selected = false;
+  }
+
+  public bool IsSelected()
+  {
+    return selected;
+  }
+
+  public bool HasType(string typeIn)
+  {
     return typeIndex.ContainsKey(typeIn.ToLower());
   }
 
-  public void SetID(string idIn) {
+  public void SetID(string idIn)
+  {
     id = idIn;
   }
 
-  public void SetName(string nameIn) {
+  public void SetName(string nameIn)
+  {
     entityName = nameIn;
   }
 
-  public void SetColor(string colorIn) {
+  public void SetColor(string colorIn)
+  {
     color = colorIn;
     UpdateColor();
   }
 
-  public void SetPilot(string pilotIn) {
+  public void SetPilot(string pilotIn)
+  {
     pilot = pilotIn;
   }
 
-  public void SetCoalition(string coalitionIn) {
+  public void SetCoalition(string coalitionIn)
+  {
     coalition = coalitionIn;
   }
 
-  private void Init() {
+  private void Init()
+  {
     init = true;
     UpdateModel();
   }
 
-  private void UpdateModel() {
+  private void UpdateModel()
+  {
     if (!init) return;
 
-    if (HasType("Human")) {
+    if (HasType("Human"))
       return;
-    } else if (HasType("Air")) {
+    else if (HasType("Air"))
       SetModel("air");
-      //EnableTrails();
-    } else if (HasType("Weapon")) {
+    else if (HasType("Weapon"))
       SetModel("missile");
-      //EnableTrails();
-    } else if (HasType("Ground")) {
+    else if (HasType("Ground"))
       SetModel("ground");
-    } else if (HasType("Sea")) {
+    else if (HasType("Sea"))
       SetModel("sea");
-    }
   }
 
   private void SetModel(string name)
@@ -151,9 +173,8 @@ public class Entity : MonoBehaviour
     UpdateColor();
   }
 
-  private void EnableTrails()
-  {
-    GetComponentInChildren<TrailRenderer>().enabled = true;
+  public bool HasModel() {
+    return (model != null);
   }
 
   public List<PosLog> GetLog() {

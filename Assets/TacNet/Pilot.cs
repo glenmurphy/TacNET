@@ -110,17 +110,21 @@ public class Pilot : MonoBehaviour
       if (craft && craft.pos.GetDistanceToNM(e.pos) > 32f)
         continue;
 
+      if (e.IsSelected())
+        Shapes.Draw.Ring(e.transform.position, Vector3.up, 0.2f, 0.02f, colorRadar1);
+
       // Draw the vertical height stem and trails
       if (e.HasType("Air") || e.HasType("Weapon")) {
-        DrawEntityDetails(e);
+        DrawEntityAirDetails(e);
       }
     }
   }
 
   List<PosLog> log; //mem
-  public void DrawEntityDetails(Entity e) {
+  public void DrawEntityAirDetails(Entity e) {
     ground.Set(e.transform.position.x, groundDrawY, e.transform.position.z + 0.01f);
 
+    // Vertical height line
     Shapes.Draw.Line(e.transform.position, ground, colorHeight);
     Shapes.Draw.Ring(ground, Vector3.up, 0.01f, 0.005f, colorHeight);
 
