@@ -110,7 +110,8 @@ public class MainUI : MonoBehaviour
   }
 
   void Update() {
-    if (loginPanel.activeSelf && Input.GetKeyDown(KeyCode.Return)) {
+    if (loginPanel.activeSelf && Input.GetKeyDown(KeyCode.Return))
+    {
       HandleConnect();
     }
     UpdatePerformance();

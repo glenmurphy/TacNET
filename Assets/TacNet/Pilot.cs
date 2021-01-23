@@ -92,7 +92,8 @@ public class Pilot : MonoBehaviour
     Shapes.Draw.LineThicknessSpace = Shapes.ThicknessSpace.Pixels;
 
     // Draw radar rings around our focused object
-    if (craft) {
+    if (craft)
+    {
       ground.Set(craft.transform.position.x, groundDrawY, craft.transform.position.z);
       Shapes.Draw.LineThickness = 0.08f;
       Shapes.Draw.Disc(ground, Vector3.up, Pos.ConvertNmToUnity(10), colorRadar1fill);
@@ -111,9 +112,8 @@ public class Pilot : MonoBehaviour
         continue;
 
       // Draw the vertical height stem and trails
-      if (e.HasType("Air") || e.HasType("Weapon")) {
+      if (e.HasType("Air") || e.HasType("Weapon"))
         DrawEntityAirDetails(e);
-      }
     }
   }
 
@@ -181,9 +181,7 @@ public class Pilot : MonoBehaviour
 
   public void SetCraft(Entity entity)
   {
-    if (craft != entity) {
-      viewAngle = 0;
-    }
+    viewAngle = 0;
     
     craft = entity;
     GameObject.Find("StatusDisplay").GetComponent<UnityEngine.UI.Text>().text = entity.pilot;
