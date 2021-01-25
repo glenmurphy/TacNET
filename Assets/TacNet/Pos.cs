@@ -17,13 +17,6 @@ public class Pos
     return km / NmToKm;
   }
 
-  public static string ConvertToDMM(float degrees) {
-    int d = (int)degrees;
-    string m = Convert.ToString((int)(((degrees - d) * 0.6) * 1000000))
-      .PadLeft(6, '0').Insert(2, ".");
-    return d + "°" + m;
-  }
-
   public float lon;
   public float lat;
   public float alt;
@@ -74,11 +67,6 @@ public class Pos
   public float GetDistanceToNM(Pos dest)
   {
     return ConvertKmToNm(GetDistanceTo(dest));
-  }
-
-  public string GetLatLon()
-  {
-    return Pos.ConvertToDMM(lat) + ", " + Pos.ConvertToDMM(lon);
   }
 
   public float GetAltFt()

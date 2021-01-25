@@ -20,6 +20,7 @@ public class MainUI : MonoBehaviour
   public GameObject connectingPanel;
 
   public GameObject controlsPanel;
+  GameObject modeButton;
   GameObject nextButton;
   GameObject resetButton;
   GameObject nearButton;
@@ -33,9 +34,11 @@ public class MainUI : MonoBehaviour
   public Speech speech;
 
   public Text statusDisplay;
-  public Pilot pilot;
+  Pilot pilot;
   World world;
+  UserCamera userCamera;
   Camera cam;
+  InputProcess input;
 
   bool enablePostProcessing = true;
   int passiveFrameRate; // after drags are done; configured in Start();
@@ -57,6 +60,7 @@ public class MainUI : MonoBehaviour
     craftName = loginPanel.transform.Find("Input-CraftName").GetComponent<InputField>();
     connect = loginPanel.transform.Find("Button-Connect").GetComponent<Button>();
 
+    modeButton = controlsPanel.transform.Find("ButtonMode").gameObject;
     nextButton = controlsPanel.transform.Find("ButtonNext").gameObject;
     resetButton = controlsPanel.transform.Find("ButtonReset").gameObject;
     nearButton = controlsPanel.transform.Find("ButtonNear").gameObject;
@@ -80,6 +84,7 @@ public class MainUI : MonoBehaviour
     connect.onClick.AddListener(HandleConnect);
     EventSystem.current.SetSelectedGameObject(connect.gameObject, null);
 
+    modeButton.GetComponent<Button>().onClick.AddListener(HandleMode);
     nextButton.GetComponent<Button>().onClick.AddListener(HandleNext);
     resetButton.GetComponent<Button>().onClick.AddListener(HandleReset);
     nearButton.GetComponent<Button>().onClick.AddListener(HandleNear);
@@ -87,7 +92,13 @@ public class MainUI : MonoBehaviour
     disconnectButton.GetComponent<Button>().onClick.AddListener(HandleDisconnect);
 
     world = GameObject.FindObjectsOfType<World>()[0];
+    pilot = GameObject.FindObjectsOfType<Pilot>()[0];
+    userCamera = transform.parent.GetComponent<UserCamera>();
     cam = transform.parent.GetComponent<Camera>();
+    input = transform.parent.GetComponent<InputProcess>();
+    input.OnPan += HandlePan;
+    input.OnZoom += HandleZoom;
+    input.OnClick += HandleClick;
   }
 
   void Start()
@@ -114,6 +125,14 @@ public class MainUI : MonoBehaviour
     {
       HandleConnect();
     }
+    
+    // We update the position of each entity here so that we can guarantee that the camera movement
+    // happens after the movement update
+    foreach (KeyValuePair<string, Entity> entry in world.entities) {
+      entry.Value.Reposition(world.basePos);
+    }
+    userCamera.UpdateCamera();
+
     UpdatePerformance();
     UpdateSelected();
   }
@@ -123,8 +142,17 @@ public class MainUI : MonoBehaviour
 
     details.transform.position = cam.WorldToScreenPoint(selectedEntity.posCache);
 
-    details.SetLonLat(selectedEntity.pos.GetLatLon());
-    details.SetAlt((int)selectedEntity.pos.GetAltFt() + "'");
+    details.SetLonLat(selectedEntity.pos.lon, selectedEntity.pos.lat);
+    Entity craft = pilot.GetCraft();
+    if (!craft)
+      details.SetAlt(selectedEntity.pos.GetAltFt());
+    else
+    {
+      float bearing = craft.pos.GetBearingTo(selectedEntity.pos);
+      float range = craft.pos.GetDistanceToNM(selectedEntity.pos);
+      float alt = (int)selectedEntity.pos.GetAltFt();
+      details.SetBRA(bearing, range, alt);
+    }
   }
 
   // Performance management ---------------------------------------------------
@@ -133,6 +161,13 @@ public class MainUI : MonoBehaviour
   }
   public bool InTouch() {
     return (lastInteractionTime > DateTime.Now - interactionTouchDuration);
+  }
+  // 1 - touch just happened
+  // 0 - at limit of touch duration
+  public float InTouchLerp() {
+    float l = 1f - 
+      (float)((DateTime.Now - lastInteractionTime).TotalMilliseconds / interactionTouchDuration.TotalMilliseconds);
+    return l < 0 ? 0 : l;
   }
 
   void UpdatePerformance()
@@ -167,44 +202,25 @@ public class MainUI : MonoBehaviour
   }
 
   // Input management ---------------------------------------------------------
-  void ProcessTouchInput()
+  public void HandlePan(object sender, InputEventArgs e)
   {
-    if (IsLoggingIn()) return;
-    if (Input.touchCount == 0) return;
-
-    for (int i = 0; i < Input.touchCount; i++)
-    {
-      Touch touch = Input.GetTouch(i);
-      if (touch.phase != TouchPhase.Began)
-        continue;
-    }
+    lastInteractionTime = DateTime.Now;
+    userCamera.HandleDrag(e.pos.x, e.pos.y, e.delta.x, e.delta.y);
   }
 
-  public void OnGUI()
+  public void HandleZoom(object sender, InputEventArgs e)
   {
-    if (IsLoggingIn()) return;
-
-    Event e = Event.current;
-    if (e.type == EventType.MouseDown)
-    {
-      HandleClick(e.mousePosition.x, Screen.height - e.mousePosition.y);
-    }
-    if (e.type == EventType.ScrollWheel)
-    {
-      pilot.ZoomBy(e.delta.y);
-      lastInteractionTime = DateTime.Now;
-    }
-    else if (e.type == EventType.MouseDrag)
-    {
-      pilot.RotateBy(e.delta.x * 0.5f);
-      pilot.ZoomBy(-e.delta.y * 0.1f);
-      lastInteractionTime = DateTime.Now;
-    }
+    lastInteractionTime = DateTime.Now;
+    userCamera.HandleScroll(-e.delta.y);
   }
 
   // Takes coordinates in screen coordinates (0,0 at bottom left), and not event coordinates
-  void HandleClick(float x, float y)
+  void HandleClick(object sender, InputEventArgs e)
   {
+    float x = e.pos.x;
+    float y = e.pos.y;
+    Debug.Log(x + ", " + y);
+
     Vector3 screenPos;
 
     float minDistance = Single.MaxValue;
@@ -225,9 +241,9 @@ public class MainUI : MonoBehaviour
         closest = entry.Value;
       }
     }
-
+    
     // should normalize ClickSize by Camera.pixelWidth;
-    if (closest != null && Mathf.Sqrt(minDistance) < ClickSize)
+    if (closest != null && minDistance < Mathf.Pow(ClickSize, 2))
       HandleSelect(closest);
     else
       HandleSelect(null);
@@ -240,6 +256,7 @@ public class MainUI : MonoBehaviour
     if (e) {
       e.Select();
       details.SetName(e.entityName);
+      details.transform.position = cam.WorldToScreenPoint(e.posCache);
       details.gameObject.SetActive(true);
     } else {
       details.gameObject.SetActive(false);
@@ -266,24 +283,33 @@ public class MainUI : MonoBehaviour
     SceneManager.LoadScene(SceneManager.GetActiveScene().name);
   }
 
+  void HandleMode()
+  {
+    userCamera.NextMode();
+  }
+
   void HandleNext()
   {
     pilot.NextCraft();
+    userCamera.Reset();
   }
 
   void HandlePrev()
   {
     pilot.PrevCraft();
+    userCamera.Reset();
   }
 
   void HandleReset()
   {
     pilot.ResetCraft();
+    userCamera.Reset();
   }
 
   void HandleNear()
   {
     pilot.FindMinCraft();
+    userCamera.Reset();
   }
 
   public void HandleClientError() {
