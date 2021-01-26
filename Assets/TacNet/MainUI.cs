@@ -142,7 +142,7 @@ public class MainUI : MonoBehaviour
 
     details.transform.position = cam.WorldToScreenPoint(selectedEntity.posCache);
 
-    details.SetLonLat(selectedEntity.pos.lon, selectedEntity.pos.lat);
+    details.SetLatLon(selectedEntity.pos.lat, selectedEntity.pos.lon);
     Entity craft = pilot.GetCraft();
     if (!craft)
       details.SetAlt(selectedEntity.pos.GetAltFt());
@@ -219,7 +219,6 @@ public class MainUI : MonoBehaviour
   {
     float x = e.pos.x;
     float y = e.pos.y;
-    Debug.Log(x + ", " + y);
 
     Vector3 screenPos;
 
