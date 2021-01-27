@@ -1060,7 +1060,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.7924528, g: 0.7924528, b: 0.7924528, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -2470,7 +2470,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 328'
+  m_Text: "283\xB0 <color=#555>/</color> 165.4 <color=#555>/</color> 32,800'"
 --- !u!222 &973276821
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3263,7 +3263,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 320, y: -396.8}
+  m_AnchoredPosition: {x: 0, y: -429.27}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
 --- !u!222 &1635982040
@@ -3555,7 +3555,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 18.000011, y: 20.000053}
-  m_SizeDelta: {x: 160, y: 30}
+  m_SizeDelta: {x: 220, y: 30}
   m_Pivot: {x: 0, y: 0}
 --- !u!114 &1753425034
 MonoBehaviour:
@@ -3589,7 +3589,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "25\xB024.0024, 54\xB021.4921"
+  m_Text: "25\xB024.0024'N 54\xB021.4921'E"
 --- !u!222 &1753425035
 CanvasRenderer:
   m_ObjectHideFlags: 0

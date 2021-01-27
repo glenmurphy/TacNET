@@ -17,10 +17,12 @@ public class Details : MonoBehaviour
   }
 
   public static string LatFormat(float lat) {
-    return ConvertToDMM(Math.Abs(lat)) + (lat > 0 ? "'N" : "'S");
+    return ConvertToDMM(Math.Abs(lat)) + 
+        (lat > 0 ? "'N" : "'S");
   }
   public static string LonFormat(float lon) {
-    return ConvertToDMM(Math.Abs(lon)) + (lon > 0 ? "'E" : "'W");
+    return ConvertToDMM(Math.Abs(lon)) + 
+        (lon > 0 ? "'E" : "'W");
   }
 
   public void SetName(string newName)
@@ -30,7 +32,7 @@ public class Details : MonoBehaviour
 
   public void SetLatLon(float lat, float lon)
   {
-    lonlat.text = LatFormat(lat) + ", " + LonFormat(lon);
+    lonlat.text = LatFormat(lat) + " " + LonFormat(lon);
   }
 
   public void SetAlt(float newAlt)
@@ -41,8 +43,10 @@ public class Details : MonoBehaviour
   public void SetBRA(float b, float r, float a)
   {
     if (r < 0.5)
-      alt.text = (int)a + "'";
+      alt.text = String.Format("{0:n0}'", a);
     else
-      alt.text = (int)b + "° " + (int)r + "nm " + (int)a + "'";
+      alt.text = (int)b + "° <color=#555>/</color> " + 
+                 String.Format("{0:F1}", r) + " <color=#555>/</color> " + 
+                 String.Format("{0:n0}'", a);
   }
 }
